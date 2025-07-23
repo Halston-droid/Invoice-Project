@@ -12,6 +12,10 @@ def greet():
     amount = request.form['amount']
     return render_template('greet.html', name=name, location=location, amount=amount)   
 
+@app.route('/visual', methods=['POST'])
+def visual():
+    visual = request.form['visual']
+    return render_template('visual.html', visual=visual)
 
 
 if __name__ == '__main__':      

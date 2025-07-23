@@ -9,5 +9,11 @@
     <h1>name = {{ name }}</h1>
     <h1>location = {{ location }}</h1>
     <h1>amount = {{ amount }}</h1>
+
+    <form action="/visual" method="post">
+        <label for="visual">Visual:</label>
+        <input type="text" id="visual" name="visual" placeholder="See Location? Y/N" required><br>
+        <button type="submit">Submit</button>
+    </form>
 </body>
 </html>

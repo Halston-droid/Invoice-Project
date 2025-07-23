@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual</title>
+</head>
+<body>
+    <h1>You entered: {{visual}}</h1>
+    
+    {% if visual.lower() == "y" %}
+        <p>✅ Yes, you want to see the location!</p>
+    {% elif visual.lower() == "n" %}
+        <p>❌ No, you do not want to see the location.</p>
+    {% else %}
+        <p>⚠️ Invalid input. Please enter Y or N.</p>
+    {% endif %}
+</body>
+</html>
