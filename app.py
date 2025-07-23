@@ -2,6 +2,8 @@ from flask import Flask, render_template, request
 import os
 app = Flask(__name__)
 
+customer = ["Under Armour", "Cesears"]
+
 @app.route('/')
 def index():
     return render_template('index.html')    
@@ -11,10 +13,9 @@ def newCustomer():
     name = request.form['newCustomer'] 
     return render_template('newCustomer.html', name=name)   
 
-@app.route('/visual', methods=['POST'])
+@app.route('/newInvoice', methods=['POST'])
 def newInvoice():
-    visual = request.form['visual']
-    return render_template('newInvoice.html', visual=visual)
+    return render_template('newInvoice.html', customer=customer)
 
 
 if __name__ == '__main__':      

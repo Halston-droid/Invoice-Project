@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Visual</title>
 </head>
 <body>
-    <h1>You entered: {{visual}}</h1>
-
-    {% if visual.lower() == "y" %}
-        <p>Here is the location:</p>
-        <img src="{{ url_for('static', filename='USA_MAP.webp') }}" alt="USA Map" width="400" />
-    {% else %}
-        <p>Location not generated</p>
-    {% endif %}
+    <form action="/newInvoice" method="post">
+        <label for="customer">Select Customer:</label>
+        <select id="customer" name="customer" required>
+            <option value="">--Select customer--</option>
+            {% for customer in customers %}
+                <option value="{{ customer }}">{{ customer }}</option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <button type="submit">Submit</button>
+    </form>
 </body>
 </html>
