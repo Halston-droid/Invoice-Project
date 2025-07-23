@@ -10,6 +10,7 @@
 
     {% if visual.lower() == "y" %}
         <p>Here is the location:</p>
+        <img src="{{ url_for('static', filename='USA_MAP.webp') }}" alt="USA Map" width="400" />
     {% else %}
         <p>Location not generated</p>
     {% endif %}
