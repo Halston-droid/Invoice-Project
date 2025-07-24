@@ -18,9 +18,15 @@
             </tr>
         </thead>
         <tbody>
+            {% for name, customer in customers.items() %}
             <tr>
-
+                <td>{{ name }}</td>
+                <td>{{ customer.location }}</td>
+                <td>{{ customer.store_count }}</td>
+                <td>{{ customer.rate }}</td>
+                <td>{{ customer.amount }}</td>
             </tr>
+            {% endfor %}
         </tbody>
     </table>
 
