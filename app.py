@@ -7,13 +7,19 @@ customers = {"Under Armour": {"location": "Baltimore, MD", "store_count": 50, "r
 
 @app.route('/')
 def index():
-    return render_template('index.html')    
+    return render_template('index.html', customers=customers)    
 
 @app.route('/newCustomer', methods=['GET', 'POST'])
 def newCustomer(): 
     if request.method == 'POST':
-        pass
-    return render_template('newCustomer.html')   
+        name = request.form['name']
+        location = request.form['location']
+        store_count = request.form['store_count']
+        rate = request.form['rate']
+        amount = request.form['amount']
+
+        customers[name] = {"location": location, "store_count": store_count, "rate": rate, "amount": amount}
+    return render_template('newCustomer.html', customers=customers)   
 
 @app.route('/newInvoice', methods=['GET', 'POST'])
 def newInvoice():
