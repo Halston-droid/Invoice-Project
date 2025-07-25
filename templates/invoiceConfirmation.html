@@ -13,7 +13,24 @@
         O: 732-449-3579<br>
         E: accounts@qandapaymentsolutions.com
     </p>
-    <p>Customer: {{ customer_name }}</p>
-    <p>Amount: {{amount}}</p>
+    <p>Customer: {{ customer.name }}</p>
+    <p>Location: {{ customer.location }}</p>
+    <p>Email: {{ customer.email }}</p>
+    <p>store_count: {{ customer.store_count }}</p>
+    <p>rate: {{ customer.rate }}</p>
+    <p>vendornum: {{ customer.vendornum }}</p>
+    <p>currentPurchaseOrderNum: {{ customer.currentPurchaseOrderNum }}</p>
+    <p>paymentTerm: {{ customer.paymentTerm }}</p>
+    <p>currentPO: {{ customer.currentPO }}</p>
+    <p>nextPO: {{ customer.nextPO }}</p>
+    <p>numStores: {{ customer.numStores }}</p>
+    <p>unitPrice: {{ customer.unitPrice }}</p>
+    <p>totalPrice: {{ customer.totalPrice }}</p>
+    <p>fixedPrice: {{ customer.fixedPrice }}</p>
+    <p>currentPOtotal: {{ customer.currentPOtotal }}</p>
+    <p>currentPOExpDate: {{ customer.currentPOExpDate }}</p>
+    <p>nextPOtotal: {{ customer.nextPOtotal }}</p>
+    <p>nextPOExpDate: {{ customer.nextPOExpDate }}</p>
+
 </body>
 </html>
