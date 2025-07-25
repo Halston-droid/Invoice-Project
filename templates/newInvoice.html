@@ -8,10 +8,10 @@
 <body>
     <form action="/invoiceConfirmation" method="post">
         <label for="customer">Select Customer:</label>
-        <select id="customer" name="customer" required>
+        <select id="customer" name="customer_id" required>
             <option value="">--Select customer--</option>
             {% for customer in customers %}
-                <option value="{{customer}}">{{ customer.name }}</option>
+                <option value="{{ customer.id }}">{{ customer.name }}</option>
             {% endfor %}
         </select>
         <br><br>

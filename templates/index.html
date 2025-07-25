@@ -13,7 +13,21 @@
                 <th>Name</th>
                 <th>Location</th>
                 <th>Email</th>
-                <th>ID</th>
+                <th>Store Count</th>
+                <th>Rate</th>
+                <th>Vendor Number</th>
+                <th>Current Purchase Order Number</th>
+                <th>Payment Term</th>
+                <th>Current Purchase Order</th>
+                <th>Next Purchase Order</th>
+                <th>Number of Stores</th>
+                <th>Unit Price</th>
+                <th>Total price</th>
+                <th>Fixed Price</th>
+                <th>Current Total Purchase Order Amount</th>
+                <th>Current Purchase Order Expiration Date</th>
+                <th>Next Total Purchase Order Amount</th>
+                <th>Next Purchase Order Expiration Date</th>
             </tr>
         </thead>
         <tbody>
@@ -22,7 +36,21 @@
                 <td>{{ cust.name }}</td>
                 <td>{{ cust.location }}</td>
                 <td>{{ cust.email}}</td>
-                <td>{{ cust.id }}</td>
+                <td>{{ cust.store_count }}</td>
+                <td>{{ cust.rate }}</td>
+                <td>{{ cust.vendornum }}</td>
+                <td>{{ cust.currentPurchaseOrderNum  }}</td>
+                <td>{{ cust.PaymentTerm }}</td>
+                <td>{{ cust.currentPO }}</td>
+                <td>{{ cust.nextPO }}</td>
+                <td>{{ cust.numStores }}</td>
+                <td>{{ cust.unitPrice }}</td>
+                <td>{{ cust.totalPrice }}</td>
+                <td>{{ cust.fixedPrice }}</td>
+                <td>{{ cust.currentPOtotal }}</td>
+                <td>{{ cust.currentPOExpDate }}</td>
+                <td>{{ cust.nextPOtotal }}</td>
+                <td>{{ cust.nextPOExpDate }}</td>
             </tr>
             {% endfor %}
         </tbody>
