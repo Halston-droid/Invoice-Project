@@ -11,7 +11,7 @@
         <select id="customer" name="customer" required>
             <option value="">--Select customer--</option>
             {% for customer in customers %}
-                <option value="{{ customer }}">{{ customer }}</option>
+                <option value="{{customer}}">{{ customer.name }}</option>
             {% endfor %}
         </select>
         <br><br>

@@ -12,19 +12,17 @@
             <tr>
                 <th>Name</th>
                 <th>Location</th>
-                <th>Store Count</th>
-                <th>Rate</th>
-                <th>Amount</th>
+                <th>Email</th>
+                <th>ID</th>
             </tr>
         </thead>
         <tbody>
-            {% for name, customer in customers.items() %}
+            {% for cust in customers %}
             <tr>
-                <td>{{ name }}</td>
-                <td>{{ customer.location }}</td>
-                <td>{{ customer.store_count }}</td>
-                <td>{{ customer.rate }}</td>
-                <td>{{ customer.amount }}</td>
+                <td>{{ cust.name }}</td>
+                <td>{{ cust.location }}</td>
+                <td>{{ cust.email}}</td>
+                <td>{{ cust.id }}</td>
             </tr>
             {% endfor %}
         </tbody>
