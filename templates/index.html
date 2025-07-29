@@ -15,6 +15,7 @@
                 <th>Email</th>
                 <th>Store Count</th>
                 <th>Rate</th>
+                <th>Amount</th>
                 <th>Vendor Number</th>
                 <th>Current Purchase Order Number</th>
                 <th>Payment Term</th>
@@ -38,9 +39,10 @@
                 <td>{{ cust.email}}</td>
                 <td>{{ cust.store_count }}</td>
                 <td>{{ cust.rate }}</td>
+                <td>{{ cust.amount }}</td>
                 <td>{{ cust.vendornum }}</td>
                 <td>{{ cust.currentPurchaseOrderNum  }}</td>
-                <td>{{ cust.PaymentTerm }}</td>
+                <td>{{ cust.paymentTerm }}</td>
                 <td>{{ cust.currentPO }}</td>
                 <td>{{ cust.nextPO }}</td>
                 <td>{{ cust.numStores }}</td>
@@ -62,6 +64,11 @@
 
     <form action="/newInvoice" method="get">
         <button type="submit">Add new invoice</button>
+    </form>
+
+    <form action="/import_excel" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".xlsx" required>
+        <button type="submit">Upload Excel File</button>
     </form>
 </body>
 </html>
