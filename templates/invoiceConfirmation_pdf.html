@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice PDF</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; }
+        h1 { text-align: center; }
+        p { margin: 5px 0; }
+        .section { margin-bottom: 20px; }
+        .label { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Invoice Confirmation</h1>
+
+    <div class="section">
+        <p><strong>Q&A Payment Solutions Inc</strong><br>
+        EIN: 68-0679829<br>
+        #105 - 325 1933 State Route 35 Wall NJ 07719<br>
+        O: 732-449-3579<br>
+        E: accounts@qandapaymentsolutions.com</p>
+    </div>
+
+    <div class="section">
+        <p><span class="label">Customer:</span> {{ customer.name }}</p>
+        <p><span class="label">Location:</span> {{ customer.location }}</p>
+        <p><span class="label">Email:</span> {{ customer.email }}</p>
+        <p><span class="label">Store Count:</span> {{ customer.store_count }}</p>
+        <p><span class="label">Rate:</span> {{ customer.rate }}</p>
+        <p><span class="label">Amount:</span> {{ customer.amount }}</p>
+        <p><span class="label">Vendor #:</span> {{ customer.vendornum }}</p>
+        <p><span class="label">Current PO Num:</span> {{ customer.currentPurchaseOrderNum }}</p>
+        <p><span class="label">Payment Term:</span> {{ customer.paymentTerm }}</p>
+        <p><span class="label">Current PO:</span> {{ customer.currentPO }}</p>
+        <p><span class="label">Next PO:</span> {{ customer.nextPO }}</p>
+        <p><span class="label">Num Stores:</span> {{ customer.numStores }}</p>
+        <p><span class="label">Unit Price:</span> {{ customer.unitPrice }}</p>
+        <p><span class="label">Total Price:</span> {{ customer.totalPrice }}</p>
+        <p><span class="label">Fixed Price:</span> {{ customer.fixedPrice }}</p>
+        <p><span class="label">Current PO Total:</span> {{ customer.currentPOtotal }}</p>
+        <p><span class="label">Current PO Expiration:</span> {{ customer.currentPOExpDate }}</p>
+        <p><span class="label">Next PO Total:</span> {{ customer.nextPOtotal }}</p>
+        <p><span class="label">Next PO Expiration:</span> {{ customer.nextPOExpDate }}</p>
+    </div>
+</body>
+</html>

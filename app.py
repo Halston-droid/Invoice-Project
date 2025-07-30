@@ -8,6 +8,10 @@ from models import Customer
 from db import init_db
 from  flask import redirect, url_for
 import pandas as pd
+from flask import make_response
+from weasyprint import HTML
+from io  import BytesIO
+from xhtml2pdf import pisa
 
 init_db()
 
@@ -65,9 +69,65 @@ def newInvoice():
 @app.route('/invoiceConfirmation', methods=['POST'])
 def invoiceConfirmation():
     customer_id = request.form.get('customer_id')
+    
     with SessionLocal() as db:
         customer = db.query(Customer).filter(Customer.id == int(customer_id)).first()
-    return render_template('invoiceConfirmation.html', customer=customer)  
+
+    if not customer:
+        return "Customer not found", 404
+
+    # Build the HTML content dynamically
+    invoice_content = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; }}
+            h1 {{ text-align: center; }}
+            p {{ margin: 5px 0; }}
+        </style>
+    </head>
+    <body>
+        <h1>Invoice Confirmation</h1>
+        <p><strong>Q&A Payment Solutions Inc</strong><br>
+        EIN: 68-0679829<br>
+        #105 - 325 1933 State Route 35 Wall NJ 07719<br>
+        O: 732-449-3579<br>
+        E: accounts@qandapaymentsolutions.com</p>
+
+        <p><strong>Customer:</strong> {customer.name}</p>
+        <p><strong>Location:</strong> {customer.location}</p>
+        <p><strong>Email:</strong> {customer.email}</p>
+        <p><strong>Store Count:</strong> {customer.store_count}</p>
+        <p><strong>Rate:</strong> {customer.rate}</p>
+        <p><strong>Vendor Number:</strong> {customer.vendornum}</p>
+        <p><strong>Current Purchase Order Number:</strong> {customer.currentPurchaseOrderNum}</p>
+        <p><strong>Payment Term:</strong> {customer.paymentTerm}</p>
+        <p><strong>Current PO:</strong> {customer.currentPO}</p>
+        <p><strong>Next PO:</strong> {customer.nextPO}</p>
+        <p><strong>Number of Stores:</strong> {customer.numStores}</p>
+        <p><strong>Unit Price:</strong> {customer.unitPrice}</p>
+        <p><strong>Total Price:</strong> {customer.totalPrice}</p>
+        <p><strong>Fixed Price:</strong> {customer.fixedPrice}</p>
+        <p><strong>Current PO Total:</strong> {customer.currentPOtotal}</p>
+        <p><strong>Current PO Expiration Date:</strong> {customer.currentPOExpDate}</p>
+        <p><strong>Next PO Total:</strong> {customer.nextPOtotal}</p>
+        <p><strong>Next PO Expiration Date:</strong> {customer.nextPOExpDate}</p>
+    </body>
+    </html>
+    """
+
+    # Generate PDF
+    pdf_file = BytesIO()
+    pisa_status = pisa.CreatePDF(invoice_content, dest=pdf_file)
+
+    if pisa_status.err:
+        return "Failed to generate PDF", 500
+
+    pdf_file.seek(0)
+    response = make_response(pdf_file.read())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=invoice_{customer.name}.pdf'
+    return response
 
 
 @app.route('/import_excel', methods=['POST'])
@@ -121,7 +181,6 @@ def import_excel():
         db.commit()
 
     return redirect(url_for('index'))
-
 
 if __name__ == '__main__':      
     app.run(host='0.0.0.0', port=os.environ.get('FLASK_PORT', 5000), debug=os.environ.get('FLASK_DEBUG', True))

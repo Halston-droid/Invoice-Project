@@ -7,6 +7,19 @@
 </head>
 <body>
     <h2>STORE INFORMATION</h2>
+
+    <form action="/newCustomer" method="get">
+        <button type="submit">Add new customer</button>
+    </form>
+
+    <form action="/newInvoice" method="get">
+        <button type="submit">Add new invoice</button>
+    </form>
+
+    <form action="/import_excel" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".xlsx" required>
+        <button type="submit">Upload Excel File</button>
+    </form>
     <table border="1">
         <thead>
             <tr>
@@ -58,17 +71,5 @@
         </tbody>
     </table>
 
-    <form action="/newCustomer" method="get">
-        <button type="submit">Add new customer</button>
-    </form>
-
-    <form action="/newInvoice" method="get">
-        <button type="submit">Add new invoice</button>
-    </form>
-
-    <form action="/import_excel" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".xlsx" required>
-        <button type="submit">Upload Excel File</button>
-    </form>
 </body>
 </html>
