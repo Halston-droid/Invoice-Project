@@ -7,56 +7,6 @@
 </head>
 <body>
     <h2>STORE INFORMATION</h2>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Location</th>
-                <th>Email</th>
-                <th>Store Count</th>
-                <th>Rate</th>
-                <th>Amount</th>
-                <th>Vendor Number</th>
-                <th>Current Purchase Order Number</th>
-                <th>Payment Term</th>
-                <th>Current Purchase Order</th>
-                <th>Next Purchase Order</th>
-                <th>Number of Stores</th>
-                <th>Unit Price</th>
-                <th>Total price</th>
-                <th>Fixed Price</th>
-                <th>Current Total Purchase Order Amount</th>
-                <th>Current Purchase Order Expiration Date</th>
-                <th>Next Total Purchase Order Amount</th>
-                <th>Next Purchase Order Expiration Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for cust in customers %}
-            <tr>
-                <td>{{ cust.name }}</td>
-                <td>{{ cust.location }}</td>
-                <td>{{ cust.email}}</td>
-                <td>{{ cust.store_count }}</td>
-                <td>{{ cust.rate }}</td>
-                <td>{{ cust.amount }}</td>
-                <td>{{ cust.vendornum }}</td>
-                <td>{{ cust.currentPurchaseOrderNum  }}</td>
-                <td>{{ cust.paymentTerm }}</td>
-                <td>{{ cust.currentPO }}</td>
-                <td>{{ cust.nextPO }}</td>
-                <td>{{ cust.numStores }}</td>
-                <td>{{ cust.unitPrice }}</td>
-                <td>{{ cust.totalPrice }}</td>
-                <td>{{ cust.fixedPrice }}</td>
-                <td>{{ cust.currentPOtotal }}</td>
-                <td>{{ cust.currentPOExpDate }}</td>
-                <td>{{ cust.nextPOtotal }}</td>
-                <td>{{ cust.nextPOExpDate }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 
     <form action="/newCustomer" method="get">
         <button type="submit">Add new customer</button>
@@ -70,5 +20,58 @@
         <input type="file" name="file" accept=".xlsx" required>
         <button type="submit">Upload Excel File</button>
     </form>
+    <form method="POST" action="/update_customers">
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Location</th>
+                    <th>Email</th>
+                    <th>Store Count</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                    <th>Vendor Number</th>
+                    <th>Current Purchase Order Number</th>
+                    <th>Payment Term</th>
+                    <th>Current Purchase Order</th>
+                    <th>Next Purchase Order</th>
+                    <th>Number of Stores</th>
+                    <th>Unit Price</th>
+                    <th>Total price</th>
+                    <th>Fixed Price</th>
+                    <th>Current Total Purchase Order Amount</th>
+                    <th>Current Purchase Order Expiration Date</th>
+                    <th>Next Total Purchase Order Amount</th>
+                    <th>Next Purchase Order Expiration Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cust in customers %}
+                <tr>
+                    <td><input type="text" name="name_{{ cust.id }}" value="{{ cust.name }}"></td>
+                    <td><input type="text" name="location_{{ cust.id }}" value="{{ cust.location }}"></td>
+                    <td><input type="email" name="email_{{ cust.id }}" value="{{ cust.email }}"></td>
+                    <td><input type="number" name="store_count_{{ cust.id }}" value="{{ cust.store_count }}"></td>
+                    <td><input type="text" name="rate_{{ cust.id }}" value="{{ cust.rate }}"></td>
+                    <td><input type="number" step="0.01" name="amount_{{ cust.id }}" value="{{ cust.amount }}"></td>
+                    <td><input type="text" name="vendornum_{{ cust.id }}" value="{{ cust.vendornum }}"></td>
+                    <td><input type="text" name="currentPurchaseOrderNum_{{ cust.id }}" value="{{ cust.currentPurchaseOrderNum }}"></td>
+                    <td><input type="number" name="paymentTerm_{{ cust.id }}" value="{{ cust.paymentTerm }}"></td>
+                    <td><input type="text" name="currentPO_{{ cust.id }}" value="{{ cust.currentPO }}"></td>
+                    <td><input type="text" name="nextPO_{{ cust.id }}" value="{{ cust.nextPO }}"></td>
+                    <td><input type="number" name="numStores_{{ cust.id }}" value="{{ cust.numStores }}"></td>
+                    <td><input type="number" step="0.01" name="unitPrice_{{ cust.id }}" value="{{ cust.unitPrice }}"></td>
+                    <td><input type="number" step="0.01" name="totalPrice_{{ cust.id }}" value="{{ cust.totalPrice }}"></td>
+                    <td><input type="number" step="0.01" name="fixedPrice_{{ cust.id }}" value="{{ cust.fixedPrice }}"></td>
+                    <td><input type="number" step="0.01" name="currentPOtotal_{{ cust.id }}" value="{{ cust.currentPOtotal }}"></td>
+                    <td><input type="date" name="currentPOExpDate_{{ cust.id }}" value="{{ cust.currentPOExpDate.strftime('%Y-%m-%d') if cust.currentPOExpDate else '' }}"></td>
+                    <td><input type="number" step="0.01" name="nextPOtotal_{{ cust.id }}" value="{{ cust.nextPOtotal }}"></td>
+                    <td><input type="date" name="nextPOExpDate_{{ cust.id }}" value="{{ cust.nextPOExpDate.strftime('%Y-%m-%d') if cust.nextPOExpDate else '' }}"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button type="Submit">Save Changes</button>
+</form>
 </body>
 </html>
