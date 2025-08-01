@@ -12,13 +12,13 @@ from flask import make_response
 from weasyprint import HTML
 from io  import BytesIO
 from xhtml2pdf import pisa
+import pandas as pd
 
 init_db()
 
 app = Flask(__name__)
 
-customers = {}
-init_db() #boot-up schema
+init_db() 
 
 @app.route('/')
 def index():
@@ -140,7 +140,7 @@ def import_excel():
     # Read Excel into DataFrame
     df = pd.read_excel(file, engine='openpyxl')
 
-    # Helper to safely convert dates
+    # Helper to convert dates
     def parse_date(val):
         if pd.isnull(val):
             return None
@@ -176,10 +176,53 @@ def import_excel():
                 currentPOExpDate=parse_date(row['currentPOExpDate']),
                 nextPOtotal=Decimal(row['nextPOtotal']),
                 nextPOExpDate=parse_date(row['nextPOExpDate'])
-            )
+            )   
             db.add(customer)
         db.commit()
 
+    return redirect(url_for('index'))
+
+@app.route('/update_customers', methods=['POST'])
+def update_customers():
+    form_data = request.form
+    def parse_date_(val):
+        if pd.isnull(val) or val == '':
+                return None
+        if isinstance(val, datetime):
+            return val
+        try:
+            return datetime.strptime(str(val), '%Y-%m-%d')
+        except ValueError:
+            try:
+                return datetime.strptime(str(val), '%m/%d/%Y')
+            except Exception:
+                return None
+            
+    with SessionLocal() as db:
+        customers = db.query(Customer).all()
+        for cust in customers:
+            cust.name = form_data.get(f'name_{cust.id}', cust.name)
+            cust.location = form_data.get(f'location_{cust.id}', cust.location)
+            cust.email = form_data.get(f'email_{cust.id}', cust.email)
+            cust.store_count = int(form_data.get(f'store_count_{cust.id}', cust.store_count))
+            cust.rate = form_data.get(f'rate_{cust.id}', cust.rate)
+            cust.amount = Decimal(form_data.get(f'amount_{cust.id}', cust.amount))
+            cust.vendornum = form_data.get(f'vendornum_{cust.id}', cust.vendornum)
+            cust.currentPurchaseOrderNum = form_data.get(f'currentPurchaseOrderNum_{cust.id}', cust.currentPurchaseOrderNum)
+            cust.paymentTerm = int(form_data.get(f'paymentTerm_{cust.id}', cust.paymentTerm))
+            cust.currentPO = form_data.get(f'currentPO_{cust.id}', cust.currentPO)
+            cust.nextPO = form_data.get(f'nextPO_{cust.id}', cust.nextPO)
+            cust.numStores = int(form_data.get(f'numStores_{cust.id}', cust.numStores))
+            cust.unitPrice = Decimal(form_data.get(f'unitPrice_{cust.id}', cust.unitPrice))
+            cust.totalPrice = Decimal(form_data.get(f'totalPrice_{cust.id}', cust.totalPrice))
+            cust.fixedPrice = Decimal(form_data.get(f'fixedPrice_{cust.id}', cust.fixedPrice))
+            cust.currentPOtotal = Decimal(form_data.get(f'currentPOtotal_{cust.id}', cust.currentPOtotal))
+            currentDate = parse_date_(form_data.get(f'currentPOExpDate_{cust.id}', ''))
+            cust.currentPOExpDate = currentDate.date() if currentDate else None
+            cust.nextPOtotal = Decimal(form_data.get(f'nextPOtotal_{cust.id}', cust.nextPOtotal))
+            nextDate = parse_date_(form_data.get(f'nextPOExpDate_{cust.id}', ''))
+            cust.nextPOExpDate = nextDate.date() if nextDate else None
+        db.commit() 
     return redirect(url_for('index'))
 
 if __name__ == '__main__':      
