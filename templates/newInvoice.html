@@ -6,16 +6,14 @@
     <title>Visual</title>
 </head>
 <body>
-    <form action="/invoiceConfirmation" method="post">
-        <label for="customer">Select Customer:</label>
-        <select id="customer" name="customer_id" required>
-            <option value="">--Select customer--</option>
-            {% for customer in customers %}
-                <option value="{{ customer.id }}">{{ customer.name }}</option>
-            {% endfor %}
-        </select>
-        <br><br>
-        <button type="submit">Submit</button>
-    </form>
+    <select id="customer" name="customer_id" required>
+        <option value="">--Select customer--</option>
+        {% for customer in customers %}
+            <option value="{{ customer.id }}"
+                {% if selected_customer and customer.id == selected_customer.id %}selected{% endif %}>
+                {{ customer.name }}
+            </option>
+        {% endfor %}
+    </select>
 </body>
 </html>
