@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Info</title>
+</head>
+<body>
+    <h2>Edit Customer Information</h2>
+
+    <form method="POST">
+        <table>
+            <thead>
+                <tr><th>Field</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Name</td><td>{{ cust.name }}</td></tr>
+                <tr><td>Location</td><td><input type="text" name="location" value="{{ cust.location }}"></td></tr>
+                <tr><td>Email</td><td><input type="email" name="email" value="{{ cust.email }}"></td></tr>
+                <tr><td>Store Count</td><td><input type="number" name="store_count" value="{{ cust.store_count }}"></td></tr>
+                <tr><td>Rate</td><td><input type="text" name="rate" value="{{ cust.rate }}"></td></tr>
+                <tr><td>Amount</td><td><input type="number" step="0.01" name="amount" value="{{ cust.amount }}"></td></tr>
+                <tr><td>Vendor Number</td><td><input type="text" name="vendornum" value="{{ cust.vendornum }}"></td></tr>
+                <tr><td>Current PO Num</td><td><input type="text" name="currentPurchaseOrderNum" value="{{ cust.currentPurchaseOrderNum }}"></td></tr>
+                <tr><td>Payment Term</td><td><input type="number" name="paymentTerm" value="{{ cust.paymentTerm }}"></td></tr>
+                <tr><td>Current PO</td><td><input type="text" name="currentPO" value="{{ cust.currentPO }}"></td></tr>
+                <tr><td>Next PO</td><td><input type="text" name="nextPO" value="{{ cust.nextPO }}"></td></tr>
+                <tr><td>Number of Stores</td><td><input type="number" name="numStores" value="{{ cust.numStores }}"></td></tr>
+                <tr><td>Unit Price</td><td><input type="number" step="0.01" name="unitPrice" value="{{ cust.unitPrice }}"></td></tr>
+                <tr><td>Total Price</td><td><input type="number" step="0.01" name="totalPrice" value="{{ cust.totalPrice }}"></td></tr>
+                <tr><td>Fixed Price</td><td><input type="number" step="0.01" name="fixedPrice" value="{{ cust.fixedPrice }}"></td></tr>
+                <tr><td>Current PO Total</td><td><input type="number" step="0.01" name="currentPOtotal" value="{{ cust.currentPOtotal }}"></td></tr>
+                <tr>
+                    <td>Current PO Exp Date</td>
+                    <td><input type="date" name="currentPOExpDate" value="{{ cust.currentPOExpDate.strftime('%Y-%m-%d') if cust.currentPOExpDate }}"></td>
+                </tr>
+                <tr><td>Next PO Total</td><td><input type="number" step="0.01" name="nextPOtotal" value="{{ cust.nextPOtotal }}"></td></tr>
+                <tr>
+                    <td>Next PO Exp Date</td>
+                    <td><input type="date" name="nextPOExpDate" value="{{ cust.nextPOExpDate.strftime('%Y-%m-%d') if cust.nextPOExpDate }}"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <p><a href="{{ url_for('index') }}">Back to Customer List</a></p>
+</body>
+</html>

@@ -41,7 +41,6 @@ def newCustomer():
             paymentTerm = int(request.form['paymentTerm']),
             currentPO = request.form['currentPO'],
             nextPO = request.form['nextPO'],
-            numStores = int(request.form['numStores']),
             unitPrice = Decimal(request.form['unitPrice']),
             totalPrice = Decimal(request.form['totalPrice']),
             fixedPrice = Decimal(request.form['fixedPrice']),
@@ -61,10 +60,13 @@ def newCustomer():
     return render_template('newCustomer.html')   
 
 @app.route('/newInvoice', methods=['GET', 'POST'])
-def newInvoice():
+def newInvoice(customer_id=None):
     with SessionLocal() as db:
         customers = db.query(Customer).all()
-    return render_template('newInvoice.html', customers=customers)
+    selected_customer = None
+    if customer_id:
+        selected_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    return render_template('newInvoice.html', customers=customers, selected_customer=selected_customer)
 
 @app.route('/invoiceConfirmation', methods=['POST'])
 def invoiceConfirmation():
@@ -104,7 +106,6 @@ def invoiceConfirmation():
         <p><strong>Payment Term:</strong> {customer.paymentTerm}</p>
         <p><strong>Current PO:</strong> {customer.currentPO}</p>
         <p><strong>Next PO:</strong> {customer.nextPO}</p>
-        <p><strong>Number of Stores:</strong> {customer.numStores}</p>
         <p><strong>Unit Price:</strong> {customer.unitPrice}</p>
         <p><strong>Total Price:</strong> {customer.totalPrice}</p>
         <p><strong>Fixed Price:</strong> {customer.fixedPrice}</p>
@@ -168,7 +169,6 @@ def import_excel():
                 paymentTerm=int(row['paymentTerm']),
                 currentPO=row['currentPO'],
                 nextPO=row['nextPO'],
-                numStores=int(row['numStores']),
                 unitPrice=Decimal(row['unitPrice']),
                 totalPrice=Decimal(row['totalPrice']),
                 fixedPrice=Decimal(row['fixedPrice']),
@@ -212,7 +212,6 @@ def update_customers():
             cust.paymentTerm = int(form_data.get(f'paymentTerm_{cust.id}', cust.paymentTerm))
             cust.currentPO = form_data.get(f'currentPO_{cust.id}', cust.currentPO)
             cust.nextPO = form_data.get(f'nextPO_{cust.id}', cust.nextPO)
-            cust.numStores = int(form_data.get(f'numStores_{cust.id}', cust.numStores))
             cust.unitPrice = Decimal(form_data.get(f'unitPrice_{cust.id}', cust.unitPrice))
             cust.totalPrice = Decimal(form_data.get(f'totalPrice_{cust.id}', cust.totalPrice))
             cust.fixedPrice = Decimal(form_data.get(f'fixedPrice_{cust.id}', cust.fixedPrice))
@@ -224,6 +223,57 @@ def update_customers():
             cust.nextPOExpDate = nextDate.date() if nextDate else None
         db.commit() 
     return redirect(url_for('index'))
+
+@app.route('/customerInfo/<int:customer_id>', methods=['GET', 'POST'])
+def customerInfo(customer_id):
+    with SessionLocal() as db:
+        cust = db.query(Customer).filter(Customer.id == customer_id).first()
+
+        if request.method == 'POST':
+            form = request.form
+
+            def parse_date_(val):
+                if pd.isnull(val) or val == '':
+                    return None
+                if isinstance(val, datetime):
+                    return val
+                try:
+                    return datetime.strptime(str(val), '%Y-%m-%d')
+                except ValueError:
+                    try:
+                        return datetime.strptime(str(val), '%m/%d/%Y')
+                    except Exception:
+                        return None
+
+            cust.location = form.get('location')
+            cust.email = form.get('email')
+            cust.store_count = int(form.get('store_count'))
+            cust.rate = form.get('rate')
+            cust.amount = Decimal(form.get('amount'))
+            cust.vendornum = form.get('vendornum')
+            cust.currentPurchaseOrderNum = form.get('currentPurchaseOrderNum')
+            cust.paymentTerm = int(form.get('paymentTerm'))
+            cust.currentPO = form.get('currentPO')
+            cust.nextPO = form.get('nextPO')
+            cust.numStores = int(form.get('numStores'))
+            cust.unitPrice = Decimal(form.get('unitPrice'))
+            cust.totalPrice = Decimal(form.get('totalPrice'))
+            cust.fixedPrice = Decimal(form.get('fixedPrice'))
+            cust.currentPOtotal = Decimal(form.get('currentPOtotal'))
+
+            currentDate = parse_date_(form.get('currentPOExpDate'))
+            cust.currentPOExpDate = currentDate.date() if currentDate else None
+
+            cust.nextPOtotal = Decimal(form.get('nextPOtotal'))
+
+            nextDate = parse_date_(form.get('nextPOExpDate'))
+            cust.nextPOExpDate = nextDate.date() if nextDate else None
+
+            db.commit()
+            return redirect(url_for('customerInfo', customer_id=customer_id))
+
+        return render_template('customerInfo.html', cust=cust)
+
 
 if __name__ == '__main__':      
     app.run(host='0.0.0.0', port=os.environ.get('FLASK_PORT', 5000), debug=os.environ.get('FLASK_DEBUG', True))
