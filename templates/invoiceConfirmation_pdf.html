@@ -3,18 +3,11 @@
 <head>
     <meta charset="utf-8">
     <title>Invoice PDF</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 30px; }
-        h1 { text-align: center; }
-        p { margin: 5px 0; }
-        .section { margin-bottom: 20px; }
-        .label { font-weight: bold; }
-    </style>
 </head>
 <body>
     <h1>Invoice Confirmation</h1>
 
-    <div class="section">
+    <div>
         <p><strong>Q&A Payment Solutions Inc</strong><br>
         EIN: 68-0679829<br>
         #105 - 325 1933 State Route 35 Wall NJ 07719<br>
@@ -22,25 +15,47 @@
         E: accounts@qandapaymentsolutions.com</p>
     </div>
 
-    <div class="section">
-        <p><span class="label">Customer:</span> {{ customer.name }}</p>
-        <p><span class="label">Location:</span> {{ customer.location }}</p>
-        <p><span class="label">Email:</span> {{ customer.email }}</p>
-        <p><span class="label">Store Count:</span> {{ customer.store_count }}</p>
-        <p><span class="label">Rate:</span> {{ customer.rate }}</p>
-        <p><span class="label">Amount:</span> {{ customer.amount }}</p>
-        <p><span class="label">Vendor #:</span> {{ customer.vendornum }}</p>
-        <p><span class="label">Current PO Num:</span> {{ customer.currentPurchaseOrderNum }}</p>
-        <p><span class="label">Payment Term:</span> {{ customer.paymentTerm }}</p>
-        <p><span class="label">Current PO:</span> {{ customer.currentPO }}</p>
-        <p><span class="label">Next PO:</span> {{ customer.nextPO }}</p>
-        <p><span class="label">Unit Price:</span> {{ customer.unitPrice }}</p>
-        <p><span class="label">Total Price:</span> {{ customer.totalPrice }}</p>
-        <p><span class="label">Fixed Price:</span> {{ customer.fixedPrice }}</p>
-        <p><span class="label">Current PO Total:</span> {{ customer.currentPOtotal }}</p>
-        <p><span class="label">Current PO Expiration:</span> {{ customer.currentPOExpDate }}</p>
-        <p><span class="label">Next PO Total:</span> {{ customer.nextPOtotal }}</p>
-        <p><span class="label">Next PO Expiration:</span> {{ customer.nextPOExpDate }}</p>
+    <div>
+        <p><strong>Customer:</strong> {{ customer.name }}</p>
+        <p><strong>Location:</strong> {{ customer.location }}</p>
+        <p><strong>Email:</strong> {{ customer.email }}</p>
+        <p><strong>Store Count:</strong> {{ customer.store_count }}</p>
+        <p><strong>Rate:</strong> {{ customer.rate }}</p>
+        <p><strong>Amount:</strong> {{ customer.amount }}</p>
+        <p><strong>Vendor #:</strong> {{ customer.vendornum }}</p>
+        <p><strong>Current PO Num:</strong> {{ customer.currentPurchaseOrderNum }}</p>
+        <p><strong>Payment Term:</strong> {{ customer.paymentTerm }}</p>
+        <p><strong>Current PO:</strong> {{ customer.currentPO }}</p>
+        <p><strong>Next PO:</strong> {{ customer.nextPO }}</p>
+        <p><strong>Unit Price:</strong> {{ customer.unitPrice }}</p>
+        <p><strong>Total Price:</strong> {{ customer.totalPrice }}</p>
+        <p><strong>Fixed Price:</strong> {{ customer.fixedPrice }}</p>
+        <p><strong>Current PO Total:</strong> {{ customer.currentPOtotal }}</p>
+        <p><strong>Current PO Expiration:</strong> {{ customer.currentPOExpDate }}</p>
+        <p><strong>Next PO Total:</strong> {{ customer.nextPOtotal }}</p>
+        <p><strong>Next PO Expiration:</strong> {{ customer.nextPOExpDate }}</p>
+
+        <!-- Services Display -->
+        <h3>Selected Services</h3>
+        {% if services %}
+            <ul>
+            {% for service, amount in services.items() %}
+                <li>{{ service }} - ${{ '{:.2f}'.format(amount) }}</li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>No services selected.</p>
+        {% endif %}
+
+        <!-- Other Services -->
+        {% if other_services %}
+            <h4>Other Services</h4>
+            <ul>
+            {% for desc, amt in other_services %}
+                <li>{{ desc }} - ${{ '{:.2f}'.format(amt) }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
     </div>
 </body>
 </html>

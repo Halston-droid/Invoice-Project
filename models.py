@@ -20,7 +20,6 @@ class Customer(Base):
     paymentTerm = Column(Integer)
     currentPO = Column(String(120))
     nextPO = Column(String(120))
-    numStores = Column(Integer)
     unitPrice = Column(Numeric(12, 2))
     totalPrice = Column(Numeric(12, 2))
     fixedPrice = Column(Numeric(12, 2))
@@ -28,3 +27,9 @@ class Customer(Base):
     currentPOExpDate = Column(DateTime(timezone=True), nullable = True)
     nextPOtotal = Column(Numeric(12, 2))
     nextPOExpDate = Column(DateTime(timezone=True), nullable = True)
+    total = Column(Numeric(12, 2))
+    multiplier = Column(Numeric(12, 2))
+    service_types = Column(String(120))
+    service_amounts = Column(String(120))  # Store as CSV string
+    other_service_descriptions = Column(String(120))
+    other_service_amounts = Column(String(120))

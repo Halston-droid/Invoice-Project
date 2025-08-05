@@ -1,48 +1,198 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Customer Info</title>
+    <meta charset="utf-8">
+    <title>Edit Customer Information</title>
 </head>
 <body>
-    <h2>Edit Customer Information</h2>
 
-    <form method="POST">
-        <table>
-            <thead>
-                <tr><th>Field</th><th>Value</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>Name</td><td>{{ cust.name }}</td></tr>
-                <tr><td>Location</td><td><input type="text" name="location" value="{{ cust.location }}"></td></tr>
-                <tr><td>Email</td><td><input type="email" name="email" value="{{ cust.email }}"></td></tr>
-                <tr><td>Store Count</td><td><input type="number" name="store_count" value="{{ cust.store_count }}"></td></tr>
-                <tr><td>Rate</td><td><input type="text" name="rate" value="{{ cust.rate }}"></td></tr>
-                <tr><td>Amount</td><td><input type="number" step="0.01" name="amount" value="{{ cust.amount }}"></td></tr>
-                <tr><td>Vendor Number</td><td><input type="text" name="vendornum" value="{{ cust.vendornum }}"></td></tr>
-                <tr><td>Current PO Num</td><td><input type="text" name="currentPurchaseOrderNum" value="{{ cust.currentPurchaseOrderNum }}"></td></tr>
-                <tr><td>Payment Term</td><td><input type="number" name="paymentTerm" value="{{ cust.paymentTerm }}"></td></tr>
-                <tr><td>Current PO</td><td><input type="text" name="currentPO" value="{{ cust.currentPO }}"></td></tr>
-                <tr><td>Next PO</td><td><input type="text" name="nextPO" value="{{ cust.nextPO }}"></td></tr>
-                <tr><td>Number of Stores</td><td><input type="number" name="numStores" value="{{ cust.numStores }}"></td></tr>
-                <tr><td>Unit Price</td><td><input type="number" step="0.01" name="unitPrice" value="{{ cust.unitPrice }}"></td></tr>
-                <tr><td>Total Price</td><td><input type="number" step="0.01" name="totalPrice" value="{{ cust.totalPrice }}"></td></tr>
-                <tr><td>Fixed Price</td><td><input type="number" step="0.01" name="fixedPrice" value="{{ cust.fixedPrice }}"></td></tr>
-                <tr><td>Current PO Total</td><td><input type="number" step="0.01" name="currentPOtotal" value="{{ cust.currentPOtotal }}"></td></tr>
-                <tr>
-                    <td>Current PO Exp Date</td>
-                    <td><input type="date" name="currentPOExpDate" value="{{ cust.currentPOExpDate.strftime('%Y-%m-%d') if cust.currentPOExpDate }}"></td>
-                </tr>
-                <tr><td>Next PO Total</td><td><input type="number" step="0.01" name="nextPOtotal" value="{{ cust.nextPOtotal }}"></td></tr>
-                <tr>
-                    <td>Next PO Exp Date</td>
-                    <td><input type="date" name="nextPOExpDate" value="{{ cust.nextPOExpDate.strftime('%Y-%m-%d') if cust.nextPOExpDate }}"></td>
-                </tr>
-            </tbody>
-        </table>
+<a href="{{ url_for('index') }}">← Back to Homepage</a>
 
-        <button type="submit">Save Changes</button>
-    </form>
+<h2>Customer Info for {{ cust.name }}</h2>
 
-    <p><a href="{{ url_for('index') }}">Back to Customer List</a></p>
+<form method="POST" action="{{ url_for('customerInfo', customer_id=cust.id) }}">
+  <table>
+        <tr><td>Name</td><td>{{ cust.name }}</td></tr>
+        <tr><td>Location</td><td><input type="text" name="location" value="{{ cust.location }}"></td></tr>
+        <tr><td>Email</td><td><input type="email" name="email" value="{{ cust.email }}"></td></tr>
+        <tr><td>Store Count</td><td><input type="number" name="store_count" value="{{ cust.store_count }}"></td></tr>
+        <tr><td>Rate</td><td><input type="text" name="rate" value="{{ cust.rate }}"></td></tr>
+        <tr><td>Amount</td><td><input type="number" step="0.01" name="amount" value="{{ cust.amount }}"></td></tr>
+        <tr><td>Vendor Number</td><td><input type="text" name="vendornum" value="{{ cust.vendornum }}"></td></tr>
+        <tr><td>Current PO Num</td><td><input type="text" name="currentPurchaseOrderNum" value="{{ cust.currentPurchaseOrderNum }}"></td></tr>
+        <tr><td>Payment Term</td><td><input type="number" name="paymentTerm" value="{{ cust.paymentTerm }}"></td></tr>
+        <tr><td>Current PO</td><td><input type="text" name="currentPO" value="{{ cust.currentPO }}"></td></tr>
+        <tr><td>Next PO</td><td><input type="text" name="nextPO" value="{{ cust.nextPO }}"></td></tr>
+        <tr><td>Unit Price</td><td><input type="number" step="0.01" name="unitPrice" value="{{ cust.unitPrice }}"></td></tr>
+        <tr><td>Total Price</td><td><input type="number" step="0.01" name="totalPrice" value="{{ cust.totalPrice }}"></td></tr>
+        <tr><td>Fixed Price</td><td><input type="number" step="0.01" name="fixedPrice" value="{{ cust.fixedPrice }}"></td></tr>
+        <tr><td>Current PO Total</td><td><input type="number" step="0.01" name="currentPOtotal" value="{{ cust.currentPOtotal }}"></td></tr>
+        <tr><td>Current PO Exp Date</td><td><input type="date" name="currentPOExpDate" value="{{ cust.currentPOExpDate.strftime('%Y-%m-%d') if cust.currentPOExpDate else ''}}"></td></tr>
+        <tr><td>Next PO Total</td><td><input type="number" step="0.01" name="nextPOtotal" value="{{ cust.nextPOtotal }}"></td></tr>
+        <tr><td>Next PO Exp Date</td><td><input type="date" name="nextPOExpDate" value="{{ cust.nextPOExpDate.strftime('%Y-%m-%d') if cust.nextPOExpDate else ''}}"></td></tr>
+
+    <!-- SERVICES MULTISELECT WITH AMOUNT INPUTS -->
+    <tr>
+      <td>Services</td>
+      <td>
+        <div style="position: relative; display: inline-block;">
+          <button type="button" id="servicesBtn" style="padding:5px 10px; cursor:pointer;">
+            Select Services ▼
+          </button>
+
+          <div id="servicesDropdown" style="display:none; position: absolute; background: white; border: 1px solid #ccc; z-index: 100; max-height: 250px; overflow-y: auto; padding: 10px; width: 350px;">
+            {% set selected_services = cust.service_types.split(',') if cust.service_types else [] %}
+            {% set amounts = {} %}
+            {% if cust.service_amounts %}
+              {% set amounts = cust.service_amounts | fromjson %}
+            {% endif %}
+
+            {% for service in ['Change Order', 'Change Order and Issue Reporting', 'Project Fee', 'Provisional Credit'] %}
+              <div style="margin-bottom:8px;">
+                <label>
+                  <input type="checkbox" name="service_types[]" value="{{ service }}" 
+                    {% if service in selected_services %}checked{% endif %}
+                    onchange="toggleAmountInput(this)">
+                  {{ service }}
+                </label>
+
+                <input type="number" step="0.01" min="0" name="service_amounts[{{ service }}]" 
+                  placeholder="Amount"
+                  style="width: 100px; margin-left: 10px; {% if service in selected_services %}display: inline-block;{% else %}display:none;{% endif %}"
+                  value="{{ amounts.get(service, '') }}">
+              </div>
+            {% endfor %}
+
+            <hr>
+
+            <div>
+              <label>
+                <input type="checkbox" id="otherCheckbox" onchange="toggleOtherServices()"
+                  {% if 'Other' in selected_services %}checked{% endif %}>
+                Other
+              </label>
+            </div>
+
+            <div id="otherServicesContainer" style="margin-top:10px; {% if 'Other' not in selected_services %}display:none;{% endif %}">
+              {% set other_descriptions = cust.other_service_descriptions.split('||') if cust.other_service_descriptions else [] %}
+              {% set other_amounts = cust.other_service_amounts.split(',') if cust.other_service_amounts else [] %}
+
+              {% for i in range(other_descriptions|length) %}
+                <div class="other-service-entry" style="margin-bottom: 8px;">
+                  <input type="text" name="other_services[]" placeholder="Other service description" value="{{ other_descriptions[i] }}" style="width: 180px;">
+                  <input type="number" step="0.01" min="0" name="other_service_amounts[]" placeholder="Amount" style="width: 100px; margin-left: 10px;" value="{{ other_amounts[i] if i < other_amounts|length else '' }}">
+                  <button type="button" onclick="removeOtherService(this)" style="margin-left: 10px;">Remove</button>
+                </div>
+              {% endfor %}
+            </div>
+
+            <button type="button" id="addOtherServiceBtn" style="margin-top:5px; display: {% if 'Other' in selected_services %}inline-block{% else %}none{% endif %};">Add Another Other Service</button>
+          </div>
+        </div>
+      </td>
+    </tr>
+
+    <tr>
+      <td colspan="2"><button type="submit">Save Changes</button></td>
+    </tr>
+  </table>
+</form>
+
+<script>
+  const servicesBtn = document.getElementById('servicesBtn');
+  const servicesDropdown = document.getElementById('servicesDropdown');
+  const otherCheckbox = document.getElementById('otherCheckbox');
+  const otherServicesContainer = document.getElementById('otherServicesContainer');
+  const addOtherServiceBtn = document.getElementById('addOtherServiceBtn');
+
+  // Toggle dropdown on button click
+  servicesBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    servicesDropdown.style.display = (servicesDropdown.style.display === 'block') ? 'none' : 'block';
+  });
+
+  // Prevent dropdown from closing when clicking inside
+  servicesDropdown.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  // Close dropdown when clicking outside anywhere
+  document.addEventListener('click', () => {
+    servicesDropdown.style.display = 'none';
+  });
+
+  // Show/hide amount input for service checkboxes
+  function toggleAmountInput(checkbox) {
+    const amountInput = checkbox.parentElement.nextElementSibling;
+    if (checkbox.checked) {
+      amountInput.style.display = 'inline-block';
+    } else {
+      amountInput.style.display = 'none';
+      amountInput.value = '';
+    }
+  }
+
+  // Toggle "Other" services container and add button visibility
+  function toggleOtherServices() {
+    if (otherCheckbox.checked) {
+      otherServicesContainer.style.display = 'block';
+      addOtherServiceBtn.style.display = 'inline-block';
+    } else {
+      otherServicesContainer.style.display = 'none';
+      addOtherServiceBtn.style.display = 'none';
+
+      const others = otherServicesContainer.querySelectorAll('input[name="other_services[]"]');
+      const amounts = otherServicesContainer.querySelectorAll('input[name="other_service_amounts[]"]');
+      others.forEach(input => input.value = '');
+      amounts.forEach(input => input.value = '');
+    }
+  }
+
+  // Remove individual Other service entry
+  function removeOtherService(btn) {
+    const entry = btn.parentElement;
+    entry.remove();
+  }
+
+  // Add new Other service entry inputs
+  addOtherServiceBtn.addEventListener('click', () => {
+    const div = document.createElement('div');
+    div.className = 'other-service-entry';
+    div.style.marginBottom = '8px';
+
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.name = 'other_services[]';
+    descInput.placeholder = 'Other service description';
+    descInput.style.width = '180px';
+
+    const amountInput = document.createElement('input');
+    amountInput.type = 'number';
+    amountInput.name = 'other_service_amounts[]';
+    amountInput.step = '0.01';
+    amountInput.min = '0';
+    amountInput.placeholder = 'Amount';
+    amountInput.style.width = '100px';
+    amountInput.style.marginLeft = '10px';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = 'Remove';
+    removeBtn.style.marginLeft = '10px';
+    removeBtn.onclick = () => div.remove();
+
+    div.appendChild(descInput);
+    div.appendChild(amountInput);
+    div.appendChild(removeBtn);
+
+    otherServicesContainer.appendChild(div);
+  });
+
+  // Initialize amount inputs visibility based on checked state on page load
+  document.querySelectorAll('#servicesDropdown input[type="checkbox"][name="service_types[]"]').forEach(cb => {
+    toggleAmountInput(cb);
+  });
+</script>
+
 </body>
 </html>

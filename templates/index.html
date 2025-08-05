@@ -8,49 +8,62 @@
 <body>
     <h2>CUSTOMER INFORMATION</h2>
 
-    <form action="/newCustomer" method="get">
+    <!-- Add New Customer button -->
+    <form action="/newCustomer" method="get" style="margin-bottom: 20px;">
         <button type="submit">Add new customer</button>
     </form>
 
-    <form action="/newInvoice" method="get">
-        <button type="submit">Add new invoice</button>
-    </form>
-
-    <form action="/import_excel" method="post" enctype="multipart/form-data">
+    <!-- Upload Excel form -->
+    <form action="/import_excel" method="post" enctype="multipart/form-data" style="margin-bottom: 20px;">
         <input type="file" name="file" accept=".xlsx" required>
         <button type="submit">Upload Excel File</button>
     </form>
-    <form method="POST" action="/update_customers">
-        <table border="1">
-            <thead>
-                <tr>
-                    <th>Actions</th>
-                    <th>Invoice Name</th>
-                    <th>Email</th>
-                    <th>Store Count</th>
-                    <th>Rate</th>
-                    <th>Payment Term</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cust in customers %}
-                <tr>
-                    <td>
-                        <a href="{{ url_for('newInvoice', customer_id=cust.id) }}">
-                            <button type="button">Add New Invoice</button>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('customerInfo', customer_id=cust.id) }}">{{ cust.name }}</a>
-                    </td>
-                    <td><input type="email" name="email_{{ cust.id }}" value="{{ cust.email }}"></td>
-                    <td><input type="number" name="store_count_{{ cust.id }}" value="{{ cust.store_count }}"></td>
-                    <td><input type="text" name="rate_{{ cust.id }}" value="{{ cust.rate }}"></td>
-                    <td><input type="number" name="paymentTerm_{{ cust.id }}" value="{{ cust.paymentTerm }}"></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <button type="Submit">Save Changes</button>
+
+    <!-- Customers table with individual invoice forms -->
+<form method="POST" action="/update_customers">
+  <table>
+    <thead>
+      <tr>
+        <th>Actions</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Store Count</th>
+        <th>Rate</th>
+        <th>Payment Term</th>
+        <th>Current PO</th>
+        <th>Total</th>
+        <th>Multiplier</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cust in customers %}
+      <tr>
+        <td>
+          <!-- NO nested form -->
+          <button type="submit"
+                  formaction="{{ url_for('invoiceConfirmation') }}"
+                  formmethod="POST"
+                  formtarget="_blank"
+                  name="customer_id"
+                  value="{{ cust.id }}">
+            Add New Invoice
+          </button>
+        </td>
+        <td><a href="{{ url_for('customerInfo', customer_id=cust.id) }}">{{ cust.name }}</a></td>
+        <td><input type="email" name="email_{{ cust.id }}" value="{{ cust.email }}"></td>
+        <td><input type="number" name="store_count_{{ cust.id }}" value="{{ cust.store_count }}"></td>
+        <td><input type="text" name="rate_{{ cust.id }}" value="{{ cust.rate }}"></td>
+        <td><input type="number" name="paymentTerm_{{ cust.id }}" value="{{ cust.paymentTerm }}"></td>
+        <td><input type="text" name="currentPO_{{ cust.id }}" value="{{ cust.currentPO }}"></td>
+        <td><input type="number" step="0.01" name="total_{{ cust.id }}" value="{{ cust.total }}"></td>
+        <td><input type="number" step="0.01" name="multiplier_{{ cust.id }}" value="{{ cust.multiplier }}"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <button type="submit">Save Changes</button>
 </form>
+
 </body>
 </html>
