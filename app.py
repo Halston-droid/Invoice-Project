@@ -13,10 +13,18 @@ from weasyprint import HTML
 from io  import BytesIO
 from xhtml2pdf import pisa
 import pandas as pd
+import json
 
 init_db()
 
 app = Flask(__name__)
+
+
+@app.template_filter('fromjson')
+def fromjson_filter(s):
+    if not s:
+        return {}
+    return json.loads(s)
 
 init_db() 
 
@@ -78,6 +86,43 @@ def invoiceConfirmation():
     if not customer:
         return "Customer not found", 404
 
+        # Extract selected services and their amounts from the form
+    selected_services = request.form.getlist('service_types[]')
+
+    service_amounts = {}
+    for service in selected_services:
+        key = f'service_amounts[{service}]'
+        amount = request.form.get(key, '0.00')
+        service_amounts[service] = amount
+
+    other_services = request.form.getlist('other_services[]')
+    other_amounts = request.form.getlist('other_service_amounts[]')
+    other_services_with_amounts = list(zip(other_services, other_amounts))
+
+    # Build HTML table for selected services
+    services_html = '<h3>Selected Services</h3><table border="1" cellpadding="5" cellspacing="0" style="border-collapse: collapse; width: 100%;">'
+    services_html += '<tr><th>Service</th><th>Amount</th></tr>'
+
+    for service in selected_services:
+        amount = service_amounts.get(service, '0.00')
+        try:
+            amount_float = float(amount)
+        except ValueError:
+            amount_float = 0.00
+        services_html += f'<tr><td>{service}</td><td>${amount_float:.2f}</td></tr>'
+
+    if other_services_with_amounts:
+        services_html += '<tr><td colspan="2"><strong>Other Services</strong></td></tr>'
+        for desc, amt in other_services_with_amounts:
+            if desc.strip():
+                try:
+                    amt_float = float(amt)
+                except ValueError:
+                    amt_float = 0.00
+                services_html += f'<tr><td>{desc}</td><td>${amt_float:.2f}</td></tr>'
+
+    services_html += '</table>'
+
     # Build the HTML content dynamically
     invoice_content = f"""
     <html>
@@ -113,6 +158,8 @@ def invoiceConfirmation():
         <p><strong>Current PO Expiration Date:</strong> {customer.currentPOExpDate}</p>
         <p><strong>Next PO Total:</strong> {customer.nextPOtotal}</p>
         <p><strong>Next PO Expiration Date:</strong> {customer.nextPOExpDate}</p>
+
+        {services_html}
     </body>
     </html>
     """
@@ -175,7 +222,9 @@ def import_excel():
                 currentPOtotal=Decimal(row['currentPOtotal']),
                 currentPOExpDate=parse_date(row['currentPOExpDate']),
                 nextPOtotal=Decimal(row['nextPOtotal']),
-                nextPOExpDate=parse_date(row['nextPOExpDate'])
+                nextPOExpDate=parse_date(row['nextPOExpDate']),
+                total = Decimal(row['total']),
+                multiplier = Decimal(row['multiplier'])
             )   
             db.add(customer)
         db.commit()
@@ -216,11 +265,19 @@ def update_customers():
             cust.totalPrice = Decimal(form_data.get(f'totalPrice_{cust.id}', cust.totalPrice))
             cust.fixedPrice = Decimal(form_data.get(f'fixedPrice_{cust.id}', cust.fixedPrice))
             cust.currentPOtotal = Decimal(form_data.get(f'currentPOtotal_{cust.id}', cust.currentPOtotal))
-            currentDate = parse_date_(form_data.get(f'currentPOExpDate_{cust.id}', ''))
-            cust.currentPOExpDate = currentDate.date() if currentDate else None
-            cust.nextPOtotal = Decimal(form_data.get(f'nextPOtotal_{cust.id}', cust.nextPOtotal))
-            nextDate = parse_date_(form_data.get(f'nextPOExpDate_{cust.id}', ''))
-            cust.nextPOExpDate = nextDate.date() if nextDate else None
+            date_str = form_data.get(f'currentPOExpDate_{cust.id}')
+
+            if date_str is not None and date_str != '':
+                currentDate = parse_date_(date_str)
+                cust.currentPOExpDate = currentDate.date() if currentDate else None
+            # else leave cust.currentPOExpDate as is, no change
+
+            # same for nextPOExpDate
+            date_str = form_data.get(f'nextPOExpDate_{cust.id}')
+            if date_str is not None and date_str != '':
+                nextDate = parse_date_(date_str)
+                cust.nextPOExpDate = nextDate.date() if nextDate else None
+
         db.commit() 
     return redirect(url_for('index'))
 
@@ -228,51 +285,97 @@ def update_customers():
 def customerInfo(customer_id):
     with SessionLocal() as db:
         cust = db.query(Customer).filter(Customer.id == customer_id).first()
+        if not cust:
+            return "Customer not found", 404
+
+        def parse_date_(val):
+            if pd.isnull(val) or val == '':
+                return None
+            if isinstance(val, datetime):
+                return val
+            try:
+                return datetime.strptime(str(val), '%Y-%m-%d')
+            except ValueError:
+                try:
+                    return datetime.strptime(str(val), '%m/%d/%Y')
+                except Exception:
+                    return None
 
         if request.method == 'POST':
             form = request.form
 
-            def parse_date_(val):
-                if pd.isnull(val) or val == '':
-                    return None
-                if isinstance(val, datetime):
-                    return val
-                try:
-                    return datetime.strptime(str(val), '%Y-%m-%d')
-                except ValueError:
-                    try:
-                        return datetime.strptime(str(val), '%m/%d/%Y')
-                    except Exception:
-                        return None
-
+            # Update customer fields
             cust.location = form.get('location')
             cust.email = form.get('email')
-            cust.store_count = int(form.get('store_count'))
+            cust.store_count = int(form.get('store_count', cust.store_count))
             cust.rate = form.get('rate')
-            cust.amount = Decimal(form.get('amount'))
+            cust.amount = Decimal(form.get('amount', cust.amount))
             cust.vendornum = form.get('vendornum')
             cust.currentPurchaseOrderNum = form.get('currentPurchaseOrderNum')
-            cust.paymentTerm = int(form.get('paymentTerm'))
+            cust.paymentTerm = int(form.get('paymentTerm', cust.paymentTerm))
             cust.currentPO = form.get('currentPO')
             cust.nextPO = form.get('nextPO')
-            cust.numStores = int(form.get('numStores'))
-            cust.unitPrice = Decimal(form.get('unitPrice'))
-            cust.totalPrice = Decimal(form.get('totalPrice'))
-            cust.fixedPrice = Decimal(form.get('fixedPrice'))
-            cust.currentPOtotal = Decimal(form.get('currentPOtotal'))
+            cust.unitPrice = Decimal(form.get('unitPrice', cust.unitPrice))
+            cust.totalPrice = Decimal(form.get('totalPrice', cust.totalPrice))
+            cust.fixedPrice = Decimal(form.get('fixedPrice', cust.fixedPrice))
+            cust.currentPOtotal = Decimal(form.get('currentPOtotal', cust.currentPOtotal))
 
             currentDate = parse_date_(form.get('currentPOExpDate'))
             cust.currentPOExpDate = currentDate.date() if currentDate else None
 
-            cust.nextPOtotal = Decimal(form.get('nextPOtotal'))
+            cust.nextPOtotal = Decimal(form.get('nextPOtotal', cust.nextPOtotal))
 
             nextDate = parse_date_(form.get('nextPOExpDate'))
             cust.nextPOExpDate = nextDate.date() if nextDate else None
 
+            # Handle selected services
+            selected_services = form.getlist('service_types[]')
+            cust.service_types = ",".join(selected_services) if selected_services else None
+
+            # Prepare service amounts
+            service_amounts_dict = {}
+            for service in selected_services:
+                amt = form.get(f'service_amounts[{service}]')
+                try:
+                    service_amounts_dict[service] = str(Decimal(amt)) if amt else "0"
+                except:
+                    service_amounts_dict[service] = "0"
+
+            cust.service_amounts = json.dumps(service_amounts_dict) if service_amounts_dict else None
+
+            # Handle "Other" services (if included)
+            other_services = request.form.getlist("other_services[]")
+            other_amounts = request.form.getlist("other_service_amounts[]")
+
+            cust.other_service_descriptions = "||".join(other_services) if other_services else None
+            cust.other_service_amounts = ",".join(other_amounts) if other_amounts else None
+
             db.commit()
+
             return redirect(url_for('customerInfo', customer_id=customer_id))
 
-        return render_template('customerInfo.html', cust=cust)
+        # ----- GET request: prepare service data for display -----
+
+        # Load service amounts as dict for pre-filling the form
+        service_amounts = {}
+        if cust.service_amounts:
+            try:
+                service_amounts = json.loads(cust.service_amounts)
+            except json.JSONDecodeError:
+                service_amounts = {}
+
+        # Load "Other" services and amounts
+        other_services = cust.other_service_descriptions.split("||") if cust.other_service_descriptions else []
+        other_amounts = cust.other_service_amounts.split(",") if cust.other_service_amounts else []
+
+        return render_template(
+            'customerInfo.html',
+            cust=cust,
+            service_amounts=service_amounts,
+            other_services=other_services,
+            other_amounts=other_amounts
+        )
+
 
 
 if __name__ == '__main__':      
