@@ -37,22 +37,23 @@
 
         <!-- Services Display -->
         <h3>Selected Services</h3>
-        {% if services %}
-            <ul>
-            {% for service, amount in services.items() %}
-                <li>{{ service }} - ${{ '{:.2f}'.format(amount) }}</li>
+        <ul>
+            {% for service in services %}
+                <li>
+                <strong>{{ service.name }}</strong>: ${{ '%.2f'|format(service.amount) }}<br>
+                <em>{{ service.description }}</em>
+                </li>
             {% endfor %}
-            </ul>
-        {% else %}
-            <p>No services selected.</p>
-        {% endif %}
+        </ul>
 
         <!-- Other Services -->
         {% if other_services %}
-            <h4>Other Services</h4>
             <ul>
-            {% for desc, amt in other_services %}
-                <li>{{ desc }} - ${{ '{:.2f}'.format(amt) }}</li>
+            {% for name, amt, detail in other_services %}
+                <li>
+                    <strong>{{ name }}</strong> - ${{ '{:.2f}'.format(amt) }}
+                    {% if detail.strip() %}<br><em>Description:</em> {{ detail }}{% endif %}
+                </li>
             {% endfor %}
             </ul>
         {% endif %}

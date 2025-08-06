@@ -76,14 +76,24 @@
             <div id="otherServicesContainer" style="margin-top:10px; {% if 'Other' not in selected_services %}display:none;{% endif %}">
               {% set other_descriptions = cust.other_service_descriptions.split('||') if cust.other_service_descriptions else [] %}
               {% set other_amounts = cust.other_service_amounts.split(',') if cust.other_service_amounts else [] %}
+              {% set other_details = cust.other_service_detail_descriptions.split('||') if cust.other_service_detail_descriptions else [] %}
 
-              {% for i in range(other_descriptions|length) %}
+                {% for i in range(other_descriptions|length) %}
                 <div class="other-service-entry" style="margin-bottom: 8px;">
-                  <input type="text" name="other_services[]" placeholder="Other service description" value="{{ other_descriptions[i] }}" style="width: 180px;">
-                  <input type="number" step="0.01" min="0" name="other_service_amounts[]" placeholder="Amount" style="width: 100px; margin-left: 10px;" value="{{ other_amounts[i] if i < other_amounts|length else '' }}">
-                  <button type="button" onclick="removeOtherService(this)" style="margin-left: 10px;">Remove</button>
+                    <input type="text" name="other_services[]" placeholder="Other service description" 
+                        value="{{ other_descriptions[i] }}" style="width: 180px;">
+                        
+                    <input type="number" step="0.01" min="0" name="other_service_amounts[]" placeholder="Amount" 
+                        style="width: 100px; margin-left: 10px;" 
+                        value="{{ other_amounts[i] if i < other_amounts|length else '' }}">
+
+                    <input type="text" name="other_service_detail_descriptions[]" placeholder="Detail description" 
+                        style="width: 250px; margin-left: 10px;" 
+                        value="{{ other_details[i] if i < other_details|length else '' }}">
+
+                    <button type="button" onclick="removeOtherService(this)" style="margin-left: 10px;">Remove</button>
                 </div>
-              {% endfor %}
+                {% endfor %}
             </div>
 
             <button type="button" id="addOtherServiceBtn" style="margin-top:5px; display: {% if 'Other' in selected_services %}inline-block{% else %}none{% endif %};">Add Another Other Service</button>
@@ -196,3 +206,4 @@
 
 </body>
 </html>
+<!DOCTYPE html>
