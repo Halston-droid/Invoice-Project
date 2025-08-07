@@ -33,3 +33,4 @@ class Customer(Base):
     service_amounts = Column(String(120))  # Store as CSV string
     other_service_descriptions = Column(String(120))
     other_service_amounts = Column(String(120))
+    other_service_detail_descriptions = Column(String(120))  # New field for detailed descriptions
