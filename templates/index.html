@@ -19,6 +19,13 @@
         <button type="submit">Upload Excel File</button>
     </form>
 
+    <!-- Invoice Date button -->
+    <label for="globalInvoiceDate"><strong>Select Invoice Date:</strong></label>
+    <input type="date" id="globalInvoiceDate" name="globalInvoiceDate" required>
+    <br><br>
+
+    <a href="{{ url_for('paymentStatus') }}">View Payment Status</a>
+
     <!-- Customers table with individual invoice forms -->
 <form method="POST" action="/update_customers">
   <table>
@@ -39,15 +46,16 @@
       {% for cust in customers %}
       <tr>
         <td>
-          <!-- NO nested form -->
-          <button type="submit"
-                  formaction="{{ url_for('invoiceConfirmation') }}"
-                  formmethod="POST"
-                  formtarget="_blank"
-                  name="customer_id"
-                  value="{{ cust.id }}">
+            <!-- NEW: Hidden date + button -->
+            <input type="hidden" name="invoiceDate" class="invoiceDateInput">
+            <button type="submit"
+                    formaction="{{ url_for('invoiceConfirmation') }}"
+                    formmethod="POST"
+                    formtarget="_blank"
+                    name="customer_id"
+                    value="{{ cust.id }}">
             Add New Invoice
-          </button>
+            </button>
         </td>
         <td><a href="{{ url_for('customerInfo', customer_id=cust.id) }}">{{ cust.name }}</a></td>
         <td><input type="email" name="email_{{ cust.id }}" value="{{ cust.email }}"></td>
@@ -64,6 +72,27 @@
 
   <button type="submit">Save Changes</button>
 </form>
+<script>
+  // Listen for clicks on every invoice button
+  document.querySelectorAll("button[type='submit'][formaction$='invoiceConfirmation']").forEach(button => {
+    button.addEventListener("click", function () {
+        const globalDate = document.getElementById("globalInvoiceDate").value;
+        console.log("Add New Invoice clicked, globalDate is:", globalDate);
+
+      // Find the hidden input next to this button
+      const form = this.closest('form');
+      const hiddenInput = form.querySelector(".invoiceDateInput");
+      if (globalDate) {
+        hiddenInput.value = globalDate;
+        console.log("Hidden invoiceDate set to:", hiddenInput.value);
+      } else {
+        alert("Please select an invoice date before generating an invoice.");
+        // Prevent form from submitting without a date
+        event.preventDefault();
+      }
+    });
+  });
+</script>
 
 </body>
 </html>

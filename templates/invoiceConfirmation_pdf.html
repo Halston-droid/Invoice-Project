@@ -5,7 +5,7 @@
     <title>Invoice PDF</title>
 </head>
 <body>
-    <h1>Invoice Confirmation</h1>
+    <h1>Invoice</h1>
 
     <div>
         <p><strong>Q&A Payment Solutions Inc</strong><br>
@@ -16,47 +16,50 @@
     </div>
 
     <div>
-        <p><strong>Customer:</strong> {{ customer.name }}</p>
-        <p><strong>Location:</strong> {{ customer.location }}</p>
-        <p><strong>Email:</strong> {{ customer.email }}</p>
-        <p><strong>Store Count:</strong> {{ customer.store_count }}</p>
-        <p><strong>Rate:</strong> {{ customer.rate }}</p>
-        <p><strong>Amount:</strong> {{ customer.amount }}</p>
-        <p><strong>Vendor #:</strong> {{ customer.vendornum }}</p>
-        <p><strong>Current PO Num:</strong> {{ customer.currentPurchaseOrderNum }}</p>
-        <p><strong>Payment Term:</strong> {{ customer.paymentTerm }}</p>
-        <p><strong>Current PO:</strong> {{ customer.currentPO }}</p>
-        <p><strong>Next PO:</strong> {{ customer.nextPO }}</p>
-        <p><strong>Unit Price:</strong> {{ customer.unitPrice }}</p>
-        <p><strong>Total Price:</strong> {{ customer.totalPrice }}</p>
-        <p><strong>Fixed Price:</strong> {{ customer.fixedPrice }}</p>
-        <p><strong>Current PO Total:</strong> {{ customer.currentPOtotal }}</p>
-        <p><strong>Current PO Expiration:</strong> {{ customer.currentPOExpDate }}</p>
-        <p><strong>Next PO Total:</strong> {{ customer.nextPOtotal }}</p>
-        <p><strong>Next PO Expiration:</strong> {{ customer.nextPOExpDate }}</p>
+        <p><strong>Invoice Number:</strong> {{ qa_invoice_num }}</p>
+        <p><strong>Invoice Date:</strong> {{ invoice_date }}</p>
+        <p><strong>Due Date:</strong> {{ due_date }}</p>
+    <div>
+        <h3>Bill To:</h3>
+        <p>
+            <strong>{{ customer.name }}</strong><br>
+            {{ customer.address }}<br>
+            {{ customer.location }}<br>
+            {{ customer.email }}<br>
+            Vendor #: {{ customer.vendornum }}<br>
+            Purchase Order #: {{ customer.currentPurchaseOrderNum }}<br>
+        </p>
+    </div>
 
-        <!-- Services Display -->
-        <h3>Selected Services</h3>
-        <ul>
-            {% for service in services %}
-                <li>
-                <strong>{{ service.name }}</strong>: ${{ '%.2f'|format(service.amount) }}<br>
-                <em>{{ service.description }}</em>
-                </li>
-            {% endfor %}
-        </ul>
 
-        <!-- Other Services -->
-        {% if other_services %}
-            <ul>
-            {% for name, amt, detail in other_services %}
-                <li>
-                    <strong>{{ name }}</strong> - ${{ '{:.2f}'.format(amt) }}
-                    {% if detail.strip() %}<br><em>Description:</em> {{ detail }}{% endif %}
-                </li>
-            {% endfor %}
-            </ul>
-        {% endif %}
+    <div>
+<table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse: collapse;">
+  <thead style="background-color: #f2f2f2;">
+    <tr>
+      <th align="left">Service</th>
+      <th align="left">Description</th>
+      <th align="right">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for service in services %}
+    <tr>
+      <td>{{ service.name }}</td>
+      <td>{{ service.description }}</td>
+      <td align="right">${{ '%.2f'|format(service.amount) }}</td>
+    </tr>
+    {% endfor %}
+
+    {% for name, amt, detail in other_services %}
+    <tr>
+      <td>{{ name }}</td>
+      <td>{{ detail }}</td>
+      <td align="right">${{ '%.2f'|format(amt) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
     </div>
 </body>
 </html>
