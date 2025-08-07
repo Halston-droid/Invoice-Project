@@ -1,9 +1,10 @@
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
-from sqlalchemy import(Column, String, Integer, Numeric, DateTime)
-
+from sqlalchemy import(Column, String, Integer, Numeric, DateTime, Date, ForeignKey, Boolean)
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm import declarative_base
+
 Base = declarative_base()
 
 class Customer(Base):
@@ -34,3 +35,21 @@ class Customer(Base):
     other_service_descriptions = Column(String(120))
     other_service_amounts = Column(String(120))
     other_service_detail_descriptions = Column(String(120))  # New field for detailed descriptions
+
+    invoices = relationship("Invoice", back_populates="customer", cascade="all, delete-orphan", lazy="joined")
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+    id = Column(Integer, primary_key=True)
+    customer_id = Column(Integer, ForeignKey('customers.id'))
+    invoice_date = Column(Date)
+    amount = Column(Numeric(12, 2))
+    qa_invoice_num = Column(String(120))
+    paid = Column(Boolean, default=False)
+
+    customer = relationship("Customer", back_populates="invoices")
+
+class InvoiceNumberTracker(Base):
+    __tablename__ = "invoice_number_tracker"
+    id = Column(Integer, primary_key=True)
+    last_number = Column(Integer, default=1394711)

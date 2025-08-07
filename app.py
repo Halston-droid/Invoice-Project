@@ -1,11 +1,10 @@
-from flask import Flask, render_template, request, make_response
+from flask import Flask, render_template, request, make_response, redirect, url_for
 import os
-from datetime import date
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from decimal import Decimal
 from db import SessionLocal, init_db
-from models import Customer
-from db import init_db
+from models import Customer, Invoice
+from db import init_db, initialize_invoice_tracker, InvoiceNumberTracker
 from  flask import redirect, url_for
 import pandas as pd
 from flask import make_response
@@ -14,6 +13,7 @@ from io  import BytesIO
 from xhtml2pdf import pisa
 import pandas as pd
 import json
+from sqlalchemy.orm import joinedload
 
 SERVICE_DESCRIPTIONS = {'Change Order' : 'Change Order Description', 
                         'Change Order and Issue Reporting' : 'Change Order Issue Reporting Description',
@@ -22,6 +22,7 @@ SERVICE_DESCRIPTIONS = {'Change Order' : 'Change Order Description',
                         }
 
 init_db()
+initialize_invoice_tracker()
 
 app = Flask(__name__)
 
@@ -77,13 +78,15 @@ def newCustomer():
 def newInvoice(customer_id=None):
     with SessionLocal() as db:
         customers = db.query(Customer).all()
-    selected_customer = None
-    if customer_id:
-        selected_customer = db.query(Customer).filter(Customer.id == customer_id).first()
-    return render_template('newInvoice.html', customers=customers, selected_customer=selected_customer)
+        selected_customer = None
+        if customer_id:
+            selected_customer = db.query(Customer).filter(Customer.id == customer_id).first()
+        return render_template('newInvoice.html', customers=customers, selected_customer=selected_customer)
+
 
 @app.route('/invoiceConfirmation', methods=['POST'])
 def invoiceConfirmation():
+
     customer_id = request.form.get('customer_id')
 
     with SessionLocal() as db:
@@ -91,6 +94,15 @@ def invoiceConfirmation():
 
     if not customer:
         return "Customer not found", 404
+
+    invoice_date = request.form.get("invoiceDate") #Gets date from the form on the homepage
+    formatted_invoice_date = ""
+    if invoice_date:
+        try:
+            dt = datetime.strptime(invoice_date, "%Y-%m-%d")
+            formatted_invoice_date = dt.strftime("%m/%d/%Y")  # Convert to MM/DD/YYYY
+        except ValueError:
+            formatted_invoice_date = ""
 
     # --- Step 1: Try getting selected services from form ---
     selected_services = request.form.getlist('service_types[]')
@@ -152,14 +164,81 @@ def invoiceConfirmation():
             'description': description
         })
 
+    # qa_invoice_num = None
+
+    # Generates QA invoice number
+    with SessionLocal() as db:
+        tracker = db.query(InvoiceNumberTracker).first()
+        if not tracker:
+            return "Invoice tracker not initialized", 500
+
+        tracker.last_number += 1
+        qa_invoice_num = f"QA{tracker.last_number}"
+        db.add(tracker)
+        db.commit()
+
+
+    # Convert string date to actual Date object
+    actual_invoice_date = None
+    due_date = None
+
+    
+    if invoice_date:
+        try:
+            actual_invoice_date = datetime.strptime(invoice_date, "%Y-%m-%d").date()
+            # Compute due date using payment term
+            payment_term = customer.paymentTerm or 0
+            due_date = actual_invoice_date + timedelta(days=payment_term)
+        except ValueError:
+            pass
 
     # --- Step 4: Render confirmation template ---
     rendered_html = render_template(
         'invoiceConfirmation_pdf.html',  # Use the correct template filename
         customer=customer,
         services=services_with_descriptions,
-        other_services=other_services_with_details
+        other_services=other_services_with_details,
+        invoice_date=formatted_invoice_date,
+        qa_invoice_num=qa_invoice_num,
+        due_date=due_date.strftime("%m/%d/%Y") if due_date else None
     )
+
+    # Calculate total amount from services and other services
+    total_amount = sum(service_amounts.values()) + sum(amount for _, amount, _ in other_services_with_details)
+
+    print("invoiceDate from form:", invoice_date)
+
+   # Prepare folders and save PDF
+    base_folder = 'Invoices'
+
+    # Save Cesears invoices to subfolder
+    if 'Cesears' in customer.name:
+        save_folder = os.path.join(base_folder, 'Cesears')
+    else:
+        save_folder = base_folder
+
+    os.makedirs(save_folder, exist_ok=True)
+
+    safe_name = customer.name.replace(' ', '_').replace('/', '_')
+    filename = f"invoice_{safe_name}_{qa_invoice_num}.pdf"
+    filepath = os.path.join(save_folder, filename)
+
+    with SessionLocal() as db:
+        customer = db.query(Customer).filter(Customer.id == int(customer_id)).first()
+        if not customer:
+            return "Customer not found", 404
+
+        # Create and save new invoice
+        new_invoice = Invoice(
+            customer_id=customer.id,
+            invoice_date=actual_invoice_date,
+            amount=total_amount,
+            qa_invoice_num=qa_invoice_num,
+            paid=False  # default to unpaid
+        )
+        db.add(new_invoice)
+        db.commit()
+
 
     # Generate PDF
     pdf_file = BytesIO()
@@ -168,11 +247,11 @@ def invoiceConfirmation():
     if pisa_status.err:
         return "Failed to generate PDF", 500
 
-    pdf_file.seek(0)
-    response = make_response(pdf_file.read())
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename=invoice_{customer.name}.pdf'
-    return response
+    # Save PDF to file
+    with open(filepath, 'wb') as f:
+        f.write(pdf_file.getvalue())
+
+    return f"Invoice saved to {filepath}"
 
 
 
@@ -245,26 +324,45 @@ def update_customers():
             except Exception:
                 return None
             
+    def safe_int(val, default):
+        try:
+            if val is None or val.strip() == '':
+                return default
+            return int(val)
+        except Exception:
+            return default
+            
+    def safe_decimal(val, default):
+        try:
+            if val is None or val.strip() == '':
+                return default
+            return Decimal(val)
+        except Exception:
+            return default
+
+            
     with SessionLocal() as db:
         customers = db.query(Customer).all()
         for cust in customers:
             cust.name = form_data.get(f'name_{cust.id}', cust.name)
             cust.location = form_data.get(f'location_{cust.id}', cust.location)
             cust.email = form_data.get(f'email_{cust.id}', cust.email)
-            cust.store_count = int(form_data.get(f'store_count_{cust.id}', cust.store_count))
+            cust.store_count = safe_int(form_data.get(f'store_count_{cust.id}'), cust.store_count)
             cust.rate = form_data.get(f'rate_{cust.id}', cust.rate)
-            cust.amount = Decimal(form_data.get(f'amount_{cust.id}', cust.amount))
+            cust.amount = safe_decimal(form_data.get(f'amount_{cust.id}'), cust.amount)
             cust.vendornum = form_data.get(f'vendornum_{cust.id}', cust.vendornum)
             cust.currentPurchaseOrderNum = form_data.get(f'currentPurchaseOrderNum_{cust.id}', cust.currentPurchaseOrderNum)
-            cust.paymentTerm = int(form_data.get(f'paymentTerm_{cust.id}', cust.paymentTerm))
+            cust.paymentTerm = safe_int(form_data.get(f'paymentTerm_{cust.id}'), cust.paymentTerm)
             cust.currentPO = form_data.get(f'currentPO_{cust.id}', cust.currentPO)
             cust.nextPO = form_data.get(f'nextPO_{cust.id}', cust.nextPO)
-            cust.unitPrice = Decimal(form_data.get(f'unitPrice_{cust.id}', cust.unitPrice))
-            cust.totalPrice = Decimal(form_data.get(f'totalPrice_{cust.id}', cust.totalPrice))
-            cust.fixedPrice = Decimal(form_data.get(f'fixedPrice_{cust.id}', cust.fixedPrice))
-            cust.currentPOtotal = Decimal(form_data.get(f'currentPOtotal_{cust.id}', cust.currentPOtotal))
-            date_str = form_data.get(f'currentPOExpDate_{cust.id}')
+            cust.unitPrice = safe_decimal(form_data.get(f'unitPrice_{cust.id}'), cust.unitPrice)
+            cust.totalPrice = safe_decimal(form_data.get(f'totalPrice_{cust.id}'), cust.totalPrice)
+            cust.fixedPrice = safe_decimal(form_data.get(f'fixedPrice_{cust.id}'), cust.fixedPrice)
+            cust.total = safe_decimal(form_data.get(f'total_{cust.id}'), cust.total)
+            cust.multiplier = safe_decimal(form_data.get(f'multiplier_{cust.id}'), cust.multiplier)
+            cust.currentPOtotal = safe_decimal(form_data.get(f'currentPOtotal_{cust.id}'), cust.currentPOtotal)
 
+            date_str = form_data.get(f'currentPOExpDate_{cust.id}')
             if date_str is not None and date_str != '':
                 currentDate = parse_date_(date_str)
                 cust.currentPOExpDate = currentDate.date() if currentDate else None
@@ -354,6 +452,42 @@ def customerInfo(customer_id):
             other_service_descriptions=other_services,        # pass 'other_services' here (not undefined var)
             other_service_detail_descriptions=other_service_details
         )
+
+from sqlalchemy.orm import joinedload
+
+@app.route('/paymentStatus', methods=['GET', 'POST'])
+def paymentStatus():
+    with SessionLocal() as db:
+
+        filter_name=request.args.get('filter_name', '').strip().lower()
+
+        # Filter customers by name if filter is applied
+        if filter_name:
+            customers = db.query(Customer).filter(Customer.name.ilike(f"%{filter_name}%")).all()
+        else:
+            customers = db.query(Customer).all()
+
+        for cust in customers:
+            cust.invoices = (
+                db.query(Invoice)
+                .filter(Invoice.customer_id == cust.id)
+                .order_by(Invoice.invoice_date.desc())  # most recent first
+                .limit(12)
+                .all()
+            )
+
+        if request.method == 'POST':
+            paid_invoice_ids = request.form.getlist('paid_invoices')  # list of invoice ids marked as paid
+
+            for cust in customers:
+                for inv in cust.invoices:
+                    inv.paid = str(inv.id) in paid_invoice_ids
+                    db.add(inv)
+
+            db.commit()
+            return redirect(url_for('paymentStatus'))
+
+        return render_template('paymentStatus.html', customers=customers)
 
 
 if __name__ == '__main__':      
