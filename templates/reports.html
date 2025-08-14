@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Monthly Reports</title>
+</head>
+<body>
+    <h2>Monthly Invoice Reports</h2>
+    <a href="{{ url_for('index') }}">← Back to Home</a>
+
+    {% for month in months %}
+        <div style="margin-top: 30px;">
+            <h3>{{ month }}</h3>
+
+            <form method="post" action="{{ url_for('download_csv') }}">
+                <input type="hidden" name="month" value="{{ month }}">
+                <button type="submit">Download CSV</button>
+            </form>
+
+            <table border="1" cellpadding="5" cellspacing="0">
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                </tr>
+                {% for inv in monthly_reports[month] %}
+                <tr>
+                    <td>{{ inv.invoice_number }}</td>
+                    <td>{{ inv.customer_name }}</td>
+                    <td>{{ inv.invoice_date }}</td>
+                    <td>{{ inv.total }}</td>
+                    <td>{{ inv.status }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    {% endfor %}
+</body>
+</html>

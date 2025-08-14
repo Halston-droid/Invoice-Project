@@ -37,6 +37,7 @@
     <a href="{{ url_for('index') }}">← Back to Homepage</a>
     <br><br>
 
+    <!-- Filter Form -->
     <form method="GET" action="{{ url_for('paymentStatus') }}">
         <label for="filter_name">Filter by Customer Name:</label>
         <input type="text" id="filter_name" name="filter_name" value="{{ filter_name }}">
@@ -47,44 +48,66 @@
     </form>
     <br>
 
-
-    <form method="POST" action="{{ url_for('paymentStatus') }}">
-        {% for cust in customers %}
-            <div class="customer-name">{{ cust.name }}</div>
-            {% if cust.invoices %}
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Invoice Date</th>
-                            <th>Amount</th>
-                            <th>Q&A Invoice #</th>
-                            <th>Paid</th>
+    <!-- Invoice Tables -->
+    {% for cust in customers %}
+        <div class="customer-name">{{ cust.name }}</div>
+        {% if cust.invoices %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Invoice Date</th>
+                        <th>Amount</th>
+                        <th>Q&A Invoice #</th>
+                        <th>Paid</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in cust.invoices %}
+                        <tr class="{{ 'paid' if inv.paid else 'unpaid' }}">
+                            <td>
+                                {% if inv.invoice_date %}
+                                    {{ inv.invoice_date.strftime('%m/%d/%Y') }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>${{ '%.2f'|format(inv.amount) }}</td>
+                            <td>{{ inv.qa_invoice_num }}</td>
+                            <td>
+                                <input 
+                                    type="checkbox" 
+                                    {% if inv.paid %}checked{% endif %}
+                                    onchange="savePaidStatus({{ inv.id }}, this.checked, this)">
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {% for inv in cust.invoices %}
-                            <tr class="{{ 'paid' if inv.paid else 'unpaid' }}">
-                                <td>
-                                    {% if inv.invoice_date %}
-                                        {{ inv.invoice_date.strftime('%m/%d/%Y') }}
-                                    {% else %}
-                                        N/A
-                                    {% endif %}
-                                </td>
-                                <td>${{ '%.2f'|format(inv.amount) }}</td>
-                                <td>{{ inv.qa_invoice_num }}</td>
-                                <td>
-                                    <input type="checkbox" name="paid_invoices" value="{{ inv.id }}" {% if inv.paid %}checked{% endif %}>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>No invoices in the last 12 months.</p>
-            {% endif %}
-        {% endfor %}
-        <button type="submit">Save Payment Status</button>
-    </form>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No invoices in the last 12 months.</p>
+        {% endif %}
+    {% endfor %}
+
+    <script>
+    function savePaidStatus(invoiceId, isPaid, checkboxElem) {
+        let formData = new FormData();
+        formData.append('invoice_id', invoiceId);
+        formData.append('paid', isPaid ? 'true' : 'false');
+
+        fetch("{{ url_for('paymentStatus') }}", {
+            method: 'POST',
+            body: formData
+        }).then(res => {
+            if (!res.ok) {
+                alert('Failed to save payment status.');
+            } else {
+                // Change row color immediately without refresh
+                let row = checkboxElem.closest('tr');
+                row.classList.toggle('paid', isPaid);
+                row.classList.toggle('unpaid', !isPaid);
+            }
+        });
+    }
+    </script>
 </body>
 </html>
