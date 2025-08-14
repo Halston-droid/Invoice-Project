@@ -14,7 +14,7 @@
             padding: 8px 12px;
             text-align: left;
         }
-        th {    
+        th {
             background-color: #ddd;
         }
         .customer-name {
@@ -24,10 +24,10 @@
             font-weight: bold;
         }
         .paid {
-            background-color: #d4edda; /* light green */
+            background-color: #d4edda;
         }
         .unpaid {
-            background-color: #f8d7da; /* light red */
+            background-color: #f8d7da;
         }
     </style>
 </head>
@@ -37,7 +37,6 @@
     <a href="{{ url_for('index') }}">← Back to Homepage</a>
     <br><br>
 
-    <!-- Filter Form -->
     <form method="GET" action="{{ url_for('paymentStatus') }}">
         <label for="filter_name">Filter by Customer Name:</label>
         <input type="text" id="filter_name" name="filter_name" value="{{ filter_name }}">
@@ -48,66 +47,87 @@
     </form>
     <br>
 
-    <!-- Invoice Tables -->
     {% for cust in customers %}
         <div class="customer-name">{{ cust.name }}</div>
         {% if cust.invoices %}
             <table>
-                <thead>
-                    <tr>
-                        <th>Invoice Date</th>
-                        <th>Amount</th>
-                        <th>Q&A Invoice #</th>
-                        <th>Paid</th>
+            <thead>
+                <tr>
+                    <th>Invoice Date</th>
+                    <th>Amount</th>
+                    <th>Amount Paid</th>
+                    <th>Remaining Balance</th>
+                    <th>Q&A Invoice #</th>
+                    <th>Paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in cust.invoices %}
+                    {% set remaining = inv.amount_with_services - (inv.amount_paid or 0) %}
+                    <tr class="{{ 'paid' if inv.paid else 'unpaid' }}">
+                        <td>{{ inv.invoice_date.strftime('%m/%d/%Y') if inv.invoice_date else 'N/A' }}</td>
+                        <td>${{ '%.2f'|format(inv.amount_with_services) }}</td>
+                        <td>
+                            <input type="number" step="0.01" min="0" class="amount-paid"
+                                data-invoice-id="{{ inv.id }}"
+                                value="{{ inv.amount_paid or '' }}">
+                        </td>
+                        <td class="remaining">${{ '%.2f'|format(remaining) }}</td>
+                        <td>{{ inv.qa_invoice_num }}</td>
+                        <td>
+                            <input type="checkbox" class="paid-status"
+                                data-invoice-id="{{ inv.id }}"
+                                {% if inv.paid %}checked{% endif %}>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    {% for inv in cust.invoices %}
-                        <tr class="{{ 'paid' if inv.paid else 'unpaid' }}">
-                            <td>
-                                {% if inv.invoice_date %}
-                                    {{ inv.invoice_date.strftime('%m/%d/%Y') }}
-                                {% else %}
-                                    N/A
-                                {% endif %}
-                            </td>
-                            <td>${{ '%.2f'|format(inv.amount) }}</td>
-                            <td>{{ inv.qa_invoice_num }}</td>
-                            <td>
-                                <input 
-                                    type="checkbox" 
-                                    {% if inv.paid %}checked{% endif %}
-                                    onchange="savePaidStatus({{ inv.id }}, this.checked, this)">
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
+                {% endfor %}
+            </tbody>
             </table>
+
         {% else %}
             <p>No invoices in the last 12 months.</p>
         {% endif %}
     {% endfor %}
 
     <script>
-    function savePaidStatus(invoiceId, isPaid, checkboxElem) {
-        let formData = new FormData();
-        formData.append('invoice_id', invoiceId);
-        formData.append('paid', isPaid ? 'true' : 'false');
-
-        fetch("{{ url_for('paymentStatus') }}", {
-            method: 'POST',
-            body: formData
-        }).then(res => {
-            if (!res.ok) {
-                alert('Failed to save payment status.');
-            } else {
-                // Change row color immediately without refresh
-                let row = checkboxElem.closest('tr');
-                row.classList.toggle('paid', isPaid);
-                row.classList.toggle('unpaid', !isPaid);
-            }
+    async function autoSave(invoiceId, field, value) {
+        await fetch("{{ url_for('update_payment_status') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ invoice_id: invoiceId, field: field, value: value })
         });
     }
+
+    // Paid checkbox auto-save + row color
+    document.querySelectorAll(".paid-status").forEach(checkbox => {
+        checkbox.addEventListener("change", function() {
+            autoSave(this.dataset.invoiceId, "paid", this.checked);
+
+            let row = this.closest("tr");
+            if (this.checked) {
+                row.classList.add("paid");
+                row.classList.remove("unpaid");
+            } else {
+                row.classList.add("unpaid");
+                row.classList.remove("paid");
+            }
+        });
+    });
+
+    // Amount Paid auto-save + remaining balance
+    document.querySelectorAll(".amount-paid").forEach(input => {
+        input.addEventListener("input", function() {
+            autoSave(this.dataset.invoiceId, "amount_paid", this.value);
+
+            let row = this.closest("tr");
+            let amountCell = parseFloat(row.querySelector("td:nth-child(2)").innerText.replace("$",""));
+            let paidVal = parseFloat(this.value || 0);
+            row.querySelector(".remaining").innerText = `$${(amountCell - paidVal).toFixed(2)}`;
+        });
+    });
     </script>
+
 </body>
 </html>

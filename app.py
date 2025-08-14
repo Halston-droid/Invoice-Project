@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, make_response, redirect, url_for
+from flask import Flask, render_template, request, make_response, redirect, url_for, jsonify
 import os
 from datetime import datetime, date, timedelta
 from decimal import Decimal
@@ -104,7 +104,7 @@ def invoiceConfirmation():
         return "Customer not found", 404
 
     invoice_date = request.form.get("invoiceDate") #Gets date from the form on the homepage
-    invoice_total = request.form.get("invoice_total")
+
     formatted_invoice_date = ""
     if invoice_date:
         try:
@@ -112,6 +112,13 @@ def invoiceConfirmation():
             formatted_invoice_date = dt.strftime("%m/%d/%Y")  # Convert to MM/DD/YYYY
         except ValueError:
             formatted_invoice_date = ""
+
+    invoice_total = request.form.get("invoice_total", 0)
+
+    try:
+        invoice_total = float(invoice_total)
+    except ValueError:
+        invoice_total = 0.0
 
     # --- Step 1: Try getting selected services from form ---
     selected_services = request.form.getlist('service_types[]')
@@ -298,6 +305,7 @@ def import_excel():
         for _, row in df.iterrows():
             customer = Customer(
                 name=row['name'],
+                invoice_name=row['invoice_name'],
                 location=row['location'],
                 store_count=int(row['store_count']),
                 rate=row['rate'],
@@ -410,6 +418,11 @@ def update_customers():
                 nextDate = parse_date_(date_str)
                 cust.nextPOExpDate = nextDate.date() if nextDate else None
 
+            cust.invoiced = f"invoiced_{cust.id}" in request.form
+            cust.emailed = f"emailed_{cust.id}" in request.form
+            cust.online = f"online_{cust.id}" in request.form
+            cust.backup_required = f"backup_required_{cust.id}" in request.form
+
         db.commit() 
     return redirect(url_for('index'))
 
@@ -512,42 +525,34 @@ def customerInfo(customer_id):
             displayed_total=displayed_total
         )
 
-
-
-@app.route('/paymentStatus', methods=['GET', 'POST'])
+@app.route("/paymentStatus", methods=["GET", "POST"])
 def paymentStatus():
+    filter_name = request.args.get("filter_name", "")
+
     with SessionLocal() as db:
-
-        if request.method == 'POST':
-            # Handle a single invoice toggle
-            invoice_id = request.form.get('invoice_id')
-            paid_status = request.form.get('paid') == 'true'
-
-            if invoice_id:
-                invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
-                if invoice:
-                    invoice.paid = paid_status
-                    db.commit()
-                    return '', 204  # No content, so JS won't reload the page
-
-        # --- GET: Show the table ---
-        filter_name = request.args.get('filter_name', '').strip().lower()
-
+        query = db.query(Customer).options(joinedload(Customer.invoices))
         if filter_name:
-            customers = db.query(Customer).filter(Customer.name.ilike(f"%{filter_name}%")).all()
-        else:
-            customers = db.query(Customer).all()
+            query = query.filter(Customer.name.ilike(f"%{filter_name}%"))
+        customers = query.all()
 
+        # Compute amount including "other services"
         for cust in customers:
-            cust.invoices = (
-                db.query(Invoice)
-                .filter(Invoice.customer_id == cust.id)
-                .order_by(Invoice.invoice_date.desc())
-                .limit(12)
-                .all()
-            )
+            # Parse other_service_amounts CSV string once per customer
+            other_services = cust.other_service_amounts or ""
+            try:
+                other_service_values = [float(x) for x in other_services.split(",") if x.strip()]
+            except ValueError:
+                other_service_values = []
 
-        return render_template('paymentStatus.html', customers=customers, filter_name=filter_name)
+            for inv in cust.invoices:
+                base_amount = float(inv.amount or 0)
+                inv.amount_with_services = base_amount + sum(other_service_values)
+                # Ensure amount_paid exists
+                if not hasattr(inv, "amount_paid") or inv.amount_paid is None:
+                    inv.amount_paid = 0
+
+    return render_template("paymentStatus.html", customers=customers, filter_name=filter_name)
+
 
 
 @app.route('/reports')
@@ -601,6 +606,34 @@ def download_csv():
         response.headers["Content-Disposition"] = f"attachment; filename={month}_invoices.csv"
         response.headers["Content-Type"] = "text/csv"
         return response
+    
+
+@app.route("/update_payment_status", methods=["POST"])
+def update_payment_status():
+    data = request.get_json()
+    invoice_id = data.get("invoice_id")
+    field = data.get("field")
+    value = data.get("value")
+
+    with SessionLocal() as db:
+        invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        if not invoice:
+            return jsonify(success=False, error="Invoice not found"), 404
+
+        if field == "paid":
+            # Convert string/boolean JSON value to Python bool
+            invoice.paid = value in [True, "true", "True", 1, "1"]
+        elif field == "amount_paid":
+            try:
+                invoice.amount_paid = Decimal(value) if value else 0
+            except Exception:
+                invoice.amount_paid = 0
+
+        db.commit()
+
+    return jsonify(success=True)
+
+
 
 if __name__ == '__main__':      
     app.run(host='0.0.0.0', port=os.environ.get('FLASK_PORT', 5000), debug=os.environ.get('FLASK_DEBUG', True))

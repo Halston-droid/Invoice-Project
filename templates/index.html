@@ -3,142 +3,201 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Flask Web Form Example</title>
+    <title>Customer Information</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        input[type="number"], input[type="text"], input[type="email"] {
+            width: 80px;
+            text-align: center;
+        }
+        .center { text-align: center; }
+        button { padding: 5px 10px; }
+        #clearCheckboxesBtn { margin-left: 20px; }
+    </style>
 </head>
 <body>
     <h2>CUSTOMER INFORMATION</h2>
 
-    <!-- Add New Customer button -->
+    <!-- Add New Customer -->
     <form action="/newCustomer" method="get" style="margin-bottom: 20px;">
         <button type="submit">Add new customer</button>
     </form>
 
-    <!-- Upload Excel form -->
+    <!-- Upload Excel -->
     <form action="/import_excel" method="post" enctype="multipart/form-data" style="margin-bottom: 20px;">
         <input type="file" name="file" accept=".xlsx" required>
         <button type="submit">Upload Excel File</button>
     </form>
 
+    <!-- Monthly Reports -->
     <form action="{{ url_for('reports') }}" method="get" style="margin: 10px 0;">
         <button type="submit">Monthly Invoice Reports</button>
     </form> 
 
-    <!-- Invoice Date button -->
+    <!-- Global Invoice Date -->
     <label for="globalInvoiceDate"><strong>Select Invoice Date:</strong></label>
     <input type="date" id="globalInvoiceDate" name="globalInvoiceDate" required>
     <br><br>
 
+    <!-- Payment Status & Clear Checkboxes -->
     <form action="{{ url_for('paymentStatus') }}" method="get" style="display:inline;">
         <button type="submit">View Payment Status</button>
     </form>
+    <button type="button" id="clearCheckboxesBtn">Clear All Checkboxes</button>
 
-    <br>
-    <form method="POST" action="/update_customers">
-      <table>
+    <!-- Customer Table -->
+    <table>
         <thead>
           <tr>
             <th>Actions</th>
             <th>Invoice Name</th>
+            <th>Customer Name</th>
+            <th>Invoiced</th>
             <th>Email</th>
+            <th>Online</th>
+            <th>Back Up Required</th>
             <th>Store Count</th>
             <th>Rate</th>
-            <th>Payment Term</th>
-            <th>Curr Purchase Order</th>
             <th>Total</th>
             <th>Multiplier</th>
           </tr>
         </thead>
-        <tbody>
-          {% for cust in customers %}
-          <tr>
-            <td>
-                <!-- NEW: Hidden date + button -->
-                <input type="hidden" name="invoiceDate" class="invoiceDateInput">
-                <input type="hidden" name="invoice_total" class="invoiceTotalInput">
-                <button type="submit"
-                        formaction="{{ url_for('invoiceConfirmation') }}"
-                        formmethod="POST"
-                        formtarget="_blank"
-                        name="customer_id"
-                        value="{{ cust.id }}">
-                Add New Invoice
-                </button>
-            </td>
-            <td>
-              <a href="{{ url_for('customerInfo', customer_id=cust.id) }}?total={{ cust.total }}">
+          <tbody>
+            {% for cust in customers %}
+            <tr>
+              <!-- Actions -->
+              <td>
+                <form method="POST" action="{{ url_for('invoiceConfirmation') }}" target="_blank">
+                    <input type="hidden" name="customer_id" value="{{ cust.id }}">
+                    <input type="hidden" name="invoiceDate" class="invoiceDateInput">
+                    <input type="hidden" name="invoice_total" class="invoiceTotalInput">
+                    <button type="submit">Add New Invoice</button>
+                </form>
+              </td>
+
+              <!-- Invoice Name (display only) -->
+              <td>
                 {{ cust.name }}
-              </a>
-            </td>
-            <td><input type="email" name="email_{{ cust.id }}" value="{{ cust.email }}"></td>
-            <td><input type="number" name="store_count_{{ cust.id }}" value="{{ cust.store_count }}"></td>
-            <td><input type="text" name="rate_{{ cust.id }}" value="{{ cust.rate }}"></td>
-            <td><input type="number" name="paymentTerm_{{ cust.id }}" value="{{ cust.paymentTerm }}"></td>
-            <td><input type="text" name="currentPO_{{ cust.id }}" value="{{ cust.currentPO }}"></td>
-            <td><input type="number" step="0.01" name="total_{{ cust.id }}" value="{{ cust.total }}"></td>
-            <td><input type="number" step="0.01" name="multiplier_{{ cust.id }}" value="{{ cust.multiplier }}"></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      
-      <br>
-      <button type="submit">Save Changes</button>
-    </form>
+              </td>
+
+              <!-- Customer Name (display only, clickable) -->
+              <td>
+                <a href="{{ url_for('customerInfo', customer_id=cust.id) }}">
+                  {{ cust.invoice_name }}
+                </a>
+              </td>
+
+              <!-- Auto-save checkboxes -->
+              <td class="center">
+                <input type="checkbox" data-customer-id="{{ cust.id }}" data-field-name="invoiced" {% if cust.invoiced %}checked{% endif %}>
+              </td>
+              <td class="center">
+                <input type="checkbox" data-customer-id="{{ cust.id }}" data-field-name="email_sent" {% if cust.email_sent %}checked{% endif %}>
+              </td>
+              <td class="center">
+                <input type="checkbox" data-customer-id="{{ cust.id }}" data-field-name="online" {% if cust.online %}checked{% endif %}>
+              </td>
+              <td class="center">
+                <input type="checkbox" data-customer-id="{{ cust.id }}" data-field-name="backup_required" {% if cust.backup_required %}checked{% endif %}>
+              </td>
+
+              <!-- Store Count, Rate, Total, Multiplier -->
+              <td><input type="number" name="store_count_{{ cust.id }}" value="{{ cust.store_count }}"></td>
+              <td><input type="text" name="rate_{{ cust.id }}" value="{{ cust.rate }}"></td>
+              <td><input type="number" step="0.01" name="total_{{ cust.id }}" value="{{ cust.total }}" readonly></td>
+              <td><input type="number" step="0.01" name="multiplier_{{ cust.id }}" value="{{ cust.multiplier }}"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+
+
+    </table>
 
     <script>
-      // Listen for clicks on every invoice button
-      document.querySelectorAll("button[type='submit'][formaction$='invoiceConfirmation']").forEach(button => {
-        button.addEventListener("click", function (event) {
-            const globalDate = document.getElementById("globalInvoiceDate").value;
-            console.log("Add New Invoice clicked, globalDate is:", globalDate);
-
-            // Find the hidden input next to this button
+      // Invoice button: sets hidden invoiceDate & total
+      document.querySelectorAll("form button[type='submit']").forEach(button => {
+        button.addEventListener("click", function(event) {
             const form = this.closest('form');
-            const hiddenInput = form.querySelector(".invoiceDateInput");
+            const globalDate = document.getElementById("globalInvoiceDate").value;
+            const hiddenDateInput = form.querySelector(".invoiceDateInput");
+            const hiddenTotalInput = form.querySelector(".invoiceTotalInput");
+            const totalInput = this.closest("tr").querySelector("input[name^='total_']");
+
             if (globalDate) {
-                hiddenInput.value = globalDate;
-                console.log("Hidden invoiceDate set to:", hiddenInput.value);
+                hiddenDateInput.value = globalDate;
+                hiddenTotalInput.value = totalInput.value || 0;
             } else {
                 alert("Please select an invoice date before generating an invoice.");
-                // Prevent form from submitting without a date
                 event.preventDefault();
             }
         });
       });
 
-      // Function to calculate total given rate, store_count, multiplier
+      // Calculate total dynamically
       function calculateTotal(rate, storeCount, multiplier) {
         rate = parseFloat(rate) || 0;
         storeCount = parseInt(storeCount) || 0;
         multiplier = parseFloat(multiplier) || 0;
-
-        // If any is zero, total should ignore it (i.e., multiply only non-zero values)
-        let values = [rate, storeCount, multiplier].filter(v => v !== 0);
-        if (values.length === 0) {
-          return 0;
-        }
-        return values.reduce((acc, val) => acc * val, 1).toFixed(2);
+        return (rate * storeCount * multiplier).toFixed(2);
       }
 
-      // For each row in the table, watch the rate, store_count, and multiplier inputs
-      document.querySelectorAll("button[type='submit'][formaction$='invoiceConfirmation']").forEach(button => {
-          button.addEventListener("click", function (event) {
-              const globalDate = document.getElementById("globalInvoiceDate").value;
-              const form = this.closest('form');
-              const hiddenDateInput = form.querySelector(".invoiceDateInput");
-              const hiddenTotalInput = form.querySelector(".invoiceTotalInput");
-              const totalInput = this.closest("tr").querySelector("input[name^='total_']");
+      document.querySelectorAll("tbody tr").forEach(row => {
+        const rateInput = row.querySelector("input[name^='rate_']");
+        const storeCountInput = row.querySelector("input[name^='store_count_']");
+        const multiplierInput = row.querySelector("input[name^='multiplier_']");
+        const totalInput = row.querySelector("input[name^='total_']");
 
-              if (globalDate) {
-                  hiddenDateInput.value = globalDate;
-                  hiddenTotalInput.value = totalInput.value || 0;  // Send total to Flask
-              } else {
-                  alert("Please select an invoice date before generating an invoice.");
-                  event.preventDefault();
-              }
+        if (rateInput && storeCountInput && multiplierInput && totalInput) {
+          [rateInput, storeCountInput, multiplierInput].forEach(input => {
+            input.addEventListener('input', () => {
+              totalInput.value = calculateTotal(rateInput.value, storeCountInput.value, multiplierInput.value);
+
+              // Auto-save total
+              const customerId = totalInput.closest('tr').querySelector("td a").href.split("/").pop();
+              fetch(`/update_total/${customerId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ total: totalInput.value })
+              });
+            });
           });
+        }
       });
 
+      // Auto-save checkboxes
+      document.querySelectorAll("input[type=checkbox]").forEach(checkbox => {
+        checkbox.addEventListener("change", function() {
+            const customerId = this.dataset.customerId;
+            const fieldName = this.dataset.fieldName;
+            const value = this.checked;
+            fetch(`/update_status/${customerId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ field: fieldName, value: value })
+            });
+        });
+      });
+
+      // Clear all checkboxes
+      document.getElementById('clearCheckboxesBtn').addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll("input[type='checkbox']");
+        checkboxes.forEach(cb => {
+          cb.checked = false;
+          cb.dispatchEvent(new Event('change')); // trigger auto-save
+        });
+      });
     </script>
 
 </body>
