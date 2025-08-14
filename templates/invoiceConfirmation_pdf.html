@@ -20,10 +20,12 @@
         <p><strong>Invoice Date:</strong> {{ invoice_date }}</p>
         <p><strong>Due Date:</strong> {{ due_date }}</p>
         <p><strong>Total:</strong> ${{ total }}</p>
+    </div>
+
     <div>
         <h3>Bill To:</h3>
         <p>
-            <strong>{{ customer.name }}</strong><br>
+            <strong>{{ customer.invoice_name }}</strong><br>
             {{ customer.address }}<br>
             {{ customer.location }}<br>
             {{ customer.email }}<br>
@@ -32,35 +34,33 @@
         </p>
     </div>
 
-
     <div>
-<table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse: collapse;">
-  <thead style="background-color: #f2f2f2;">
-    <tr>
-      <th align="left">Service</th>
-      <th align="left">Description</th>
-      <th align="right">Amount</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for service in services %}
-    <tr>
-      <td>{{ service.name }}</td>
-      <td>{{ service.description }}</td>
-      <td align="right">${{ '%.2f'|format(service.amount) }}</td>
-    </tr>
-    {% endfor %}
+        <table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse: collapse;">
+            <thead style="background-color: #f2f2f2;">
+                <tr>
+                    <th align="left">Service</th>
+                    <th align="left">Description</th>
+                    <th align="right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in services %}
+                <tr>
+                    <td>{{ service.name }}</td>
+                    <td>{{ service.description }}</td>
+                    <td align="right">${{ '%.2f'|format(total) }}</td>
+                </tr>
+                {% endfor %}
 
-    {% for name, amt, detail in other_services %}
-    <tr>
-      <td>{{ name }}</td>
-      <td>{{ detail }}</td>
-      <td align="right">${{ '%.2f'|format(amt) }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
+                {% for name, amt, detail in other_services %}
+                <tr>
+                    <td>{{ name }}</td>
+                    <td>{{ detail }}</td>
+                    <td align="right">${{ '%.2f'|format(amt) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </body>
 </html>

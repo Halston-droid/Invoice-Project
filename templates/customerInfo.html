@@ -19,7 +19,8 @@
 
 <form id="customerForm" method="POST" action="{{ url_for('customerInfo', customer_id=cust.id) }}">
 <table>
-        <tr><td>Name</td><td>{{ cust.name }}</td></tr>
+        <tr><td>Invoice Name</td><td>{{ cust.name }}</td></tr>
+        <tr><td>Customer Name</td><td>{{ cust.invoice_name }}</td></tr>
         <tr><td>Location</td><td><input type="text" name="location" value="{{ cust.location }}"></td></tr>
         <tr><td>Email</td><td><input type="email" name="email" value="{{ cust.email }}"></td></tr>
         <tr><td>Store Count</td><td><input type="number" name="store_count" value="{{ cust.store_count }}"></td></tr>
@@ -63,11 +64,6 @@
                 {{ service }}
                 </label>
 
-                <input type="number" step="0.01" min="0" name="service_amounts[{{ service }}]" 
-                placeholder="Amount"
-                style="width: 100px; margin-left: 10px; {% if service in selected_services %}display: inline-block;{% else %}display:none;{% endif %}"
-                value="{{ amounts.get(service, '') }}"
-                oninput="triggerAutoSave()">
             </div>
             {% endfor %}
 

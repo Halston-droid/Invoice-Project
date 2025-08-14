@@ -10,7 +10,8 @@ Base = declarative_base()
 class Customer(Base):
     __tablename__="customers"
     id = Column(Integer, primary_key=True)
-    name = Column(String(120), nullable = False)
+    name = Column(String(120), nullable = True)
+    invoice_name = Column(String(120), nullable =True)
     location = Column(String(120), nullable = False)
     store_count = Column(Integer)
     rate = Column(String(120))
@@ -35,6 +36,11 @@ class Customer(Base):
     other_service_descriptions = Column(String(120))
     other_service_amounts = Column(String(120))
     other_service_detail_descriptions = Column(String(120))  # New field for detailed descriptions
+
+    invoiced = Column(Boolean, default=False)
+    emailed = Column(Boolean, default=False)
+    online = Column(Boolean, default=False)
+    backup_required = Column(Boolean, default=False)
 
     invoices = relationship("Invoice", back_populates="customer", cascade="all, delete-orphan", lazy="joined")
 
