@@ -9,11 +9,13 @@ from  flask import redirect, url_for
 import pandas as pd
 from flask import make_response
 from weasyprint import HTML
-from io  import BytesIO
+from io  import BytesIO, StringIO
 from xhtml2pdf import pisa
 import pandas as pd
 import json
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload   
+from collections import defaultdict
+import csv
 
 SERVICE_DESCRIPTIONS = {'Change Order' : 'Change Order Description', 
                         'Change Order and Issue Reporting' : 'Change Order Issue Reporting Description',
@@ -26,6 +28,22 @@ initialize_invoice_tracker()
 
 app = Flask(__name__)
 
+def calculate_total(rate, store_count, multiplier):
+    # Convert inputs to floats if needed and handle None
+    values = []
+    for v in [rate, store_count, multiplier]:
+        try:
+            val = float(v)
+        except (TypeError, ValueError):
+            val = 0
+        if val != 0:
+            values.append(val)
+    if not values:
+        return 0
+    total = 1
+    for v in values:
+        total *= v
+    return total
 
 @app.template_filter('fromjson')
 def fromjson_filter(s):
@@ -74,16 +92,6 @@ def newCustomer():
     
     return render_template('newCustomer.html')   
 
-@app.route('/newInvoice', methods=['GET', 'POST'])
-def newInvoice(customer_id=None):
-    with SessionLocal() as db:
-        customers = db.query(Customer).all()
-        selected_customer = None
-        if customer_id:
-            selected_customer = db.query(Customer).filter(Customer.id == customer_id).first()
-        return render_template('newInvoice.html', customers=customers, selected_customer=selected_customer)
-
-
 @app.route('/invoiceConfirmation', methods=['POST'])
 def invoiceConfirmation():
 
@@ -96,6 +104,7 @@ def invoiceConfirmation():
         return "Customer not found", 404
 
     invoice_date = request.form.get("invoiceDate") #Gets date from the form on the homepage
+    invoice_total = request.form.get("invoice_total")
     formatted_invoice_date = ""
     if invoice_date:
         try:
@@ -163,8 +172,15 @@ def invoiceConfirmation():
             'amount': amount,
             'description': description
         })
+    
+    # makes total dynamic
+    rate = float(customer.rate) if customer.rate else 0
+    store_count = int(customer.store_count) if customer.store_count else 0
+    multiplier = float(customer.multiplier) if customer.multiplier else 0
 
-    # qa_invoice_num = None
+    calculated_total = calculate_total(rate, store_count, multiplier)
+    other_total = sum(amount for _, amount, _ in other_services_with_details)
+    total_amount = calculated_total + other_total
 
     # Generates QA invoice number
     with SessionLocal() as db:
@@ -200,13 +216,12 @@ def invoiceConfirmation():
         other_services=other_services_with_details,
         invoice_date=formatted_invoice_date,
         qa_invoice_num=qa_invoice_num,
-        due_date=due_date.strftime("%m/%d/%Y") if due_date else None
+        due_date=due_date.strftime("%m/%d/%Y") if due_date else None,
+        total = invoice_total
     )
 
     # Calculate total amount from services and other services
     total_amount = sum(service_amounts.values()) + sum(amount for _, amount, _ in other_services_with_details)
-
-    print("invoiceDate from form:", invoice_date)
 
    # Prepare folders and save PDF
     base_folder = 'Invoices'
@@ -344,6 +359,27 @@ def update_customers():
     with SessionLocal() as db:
         customers = db.query(Customer).all()
         for cust in customers:
+
+            rate_val = form_data.get(f'rate_{cust.id}', cust.rate)
+            store_count_val = form_data.get(f'store_count_{cust.id}', cust.store_count)
+            multiplier_val = form_data.get(f'multiplier_{cust.id}', cust.multiplier)
+            try:
+                cust.rate = float(rate_val) if rate_val not in (None, '') else 0
+            except Exception:
+                cust.rate = 0
+
+            try:
+                cust.store_count = int(store_count_val) if store_count_val not in (None, '') else 0
+            except Exception:
+                cust.store_count = 0
+
+            try:
+                cust.multiplier = float(multiplier_val) if multiplier_val not in (None, '') else 0
+            except Exception:
+                cust.multiplier = 0    
+
+            cust.total = Decimal(calculate_total(cust.rate, cust.store_count, cust.multiplier))
+        
             cust.name = form_data.get(f'name_{cust.id}', cust.name)
             cust.location = form_data.get(f'location_{cust.id}', cust.location)
             cust.email = form_data.get(f'email_{cust.id}', cust.email)
@@ -379,59 +415,78 @@ def update_customers():
 
 @app.route('/customerInfo/<int:customer_id>', methods=['GET', 'POST'])
 def customerInfo(customer_id):
+    # Get total passed as query parameter (string)
+    total_from_query = request.args.get('total', None)
+
     with SessionLocal() as db:
         cust = db.query(Customer).filter(Customer.id == customer_id).first()
         if not cust:
             return "Customer not found", 404
 
-        def parse_date_(val):
-            if pd.isnull(val) or val == '':
-                return None
-            if isinstance(val, datetime):
-                return val
-            try:
-                return datetime.strptime(str(val), '%Y-%m-%d')
-            except ValueError:
-                try:
-                    return datetime.strptime(str(val), '%m/%d/%Y')
-                except Exception:
-                    return None
-
         if request.method == 'POST':
             form = request.form
 
-            # Update customer fields (existing code omitted for brevity)...
+            # Update simple fields here (your existing logic)
+            simple_fields = [
+                "location", "email", "store_count", "rate", "amount", "vendornum", "currentPurchaseOrderNum",
+                "paymentTerm", "currentPO", "nextPO", "unitPrice", "totalPrice", "fixedPrice", "currentPOtotal",
+                "nextPOtotal"
+            ]
+            for field in simple_fields:
+                if field in form:
+                    value = form.get(field)
+                    if field in ["store_count", "paymentTerm"]:
+                        try:
+                            value = int(value)
+                        except:
+                            value = None
+                    elif field in ["amount", "rate", "unitPrice", "totalPrice", "fixedPrice", "currentPOtotal", "nextPOtotal"]:
+                        try:
+                            value = float(value)
+                        except:
+                            value = None
+                    setattr(cust, field, value)
 
-            # Handle selected services
-            selected_services = form.getlist('service_types[]')
-            cust.service_types = ",".join(selected_services) if selected_services else None
+            # Date fields
+            for date_field in ["currentPOExpDate", "nextPOExpDate"]:
+                if date_field in form:
+                    date_str = form.get(date_field)
+                    if date_str:
+                        try:
+                            setattr(cust, date_field, datetime.strptime(date_str, '%Y-%m-%d'))
+                        except:
+                            setattr(cust, date_field, None)
+                    else:
+                        setattr(cust, date_field, None)
 
-            # Prepare service amounts
-            service_amounts_dict = {}
-            for service in selected_services:
-                amt = form.get(f'service_amounts[{service}]')
-                try:
-                    service_amounts_dict[service] = str(Decimal(amt)) if amt else "0"
-                except:
-                    service_amounts_dict[service] = "0"
-            cust.service_amounts = json.dumps(service_amounts_dict) if service_amounts_dict else None
+            # Update services if present
+            if any(key.startswith('service_types') for key in form.keys()):
+                selected_services = form.getlist('service_types[]')
+                cust.service_types = ",".join(selected_services) if selected_services else None
 
-            # Handle "Other" services (including new detail descriptions)
-            other_services = form.getlist("other_services[]")
-            other_amounts = form.getlist("other_service_amounts[]")
-            other_service_details = form.getlist("other_service_detail_descriptions[]")
+                service_amounts_dict = {}
+                for service in selected_services:
+                    amt = form.get(f'service_amounts[{service}]')
+                    try:
+                        service_amounts_dict[service] = str(Decimal(amt)) if amt else "0"
+                    except:
+                        service_amounts_dict[service] = "0"
+                cust.service_amounts = json.dumps(service_amounts_dict) if service_amounts_dict else None
 
-            # Save to DB (choose which "other service descriptions" you want to save)
-            cust.other_service_descriptions = "||".join(other_services) if other_services else None
-            cust.other_service_amounts = ",".join(other_amounts) if other_amounts else None
-            cust.other_service_detail_descriptions = "||".join(other_service_details) if other_service_details else None
+                other_services = form.getlist("other_services[]")
+                other_amounts = form.getlist("other_service_amounts[]")
+                other_service_details = form.getlist("other_service_detail_descriptions[]")
+
+                cust.other_service_descriptions = "||".join(other_services) if other_services else None
+                cust.other_service_amounts = ",".join(other_amounts) if other_amounts else None
+                cust.other_service_detail_descriptions = "||".join(other_service_details) if other_service_details else None
 
             db.add(cust)
             db.commit()
 
-            return redirect(url_for('customerInfo', customer_id=customer_id))
+            return {"status": "success"}
 
-        # ----- GET request: prepare service data for display -----
+        # --- GET Request: Prepare data ---
         service_amounts = {}
         if cust.service_amounts:
             try:
@@ -443,25 +498,41 @@ def customerInfo(customer_id):
         other_amounts = cust.other_service_amounts.split(",") if cust.other_service_amounts else []
         other_service_details = cust.other_service_detail_descriptions.split("||") if cust.other_service_detail_descriptions else []
 
+        # Use total from query param if present, else fallback to DB value
+        displayed_total = total_from_query if total_from_query is not None else str(cust.total)
+
         return render_template(
             'customerInfo.html',
             cust=cust,
             service_amounts=service_amounts,
             other_services=other_services,
             other_amounts=other_amounts,
-            other_service_descriptions=other_services,        # pass 'other_services' here (not undefined var)
-            other_service_detail_descriptions=other_service_details
+            other_service_descriptions=other_services,
+            other_service_detail_descriptions=other_service_details,
+            displayed_total=displayed_total
         )
 
-from sqlalchemy.orm import joinedload
+
 
 @app.route('/paymentStatus', methods=['GET', 'POST'])
 def paymentStatus():
     with SessionLocal() as db:
 
-        filter_name=request.args.get('filter_name', '').strip().lower()
+        if request.method == 'POST':
+            # Handle a single invoice toggle
+            invoice_id = request.form.get('invoice_id')
+            paid_status = request.form.get('paid') == 'true'
 
-        # Filter customers by name if filter is applied
+            if invoice_id:
+                invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+                if invoice:
+                    invoice.paid = paid_status
+                    db.commit()
+                    return '', 204  # No content, so JS won't reload the page
+
+        # --- GET: Show the table ---
+        filter_name = request.args.get('filter_name', '').strip().lower()
+
         if filter_name:
             customers = db.query(Customer).filter(Customer.name.ilike(f"%{filter_name}%")).all()
         else:
@@ -471,24 +542,65 @@ def paymentStatus():
             cust.invoices = (
                 db.query(Invoice)
                 .filter(Invoice.customer_id == cust.id)
-                .order_by(Invoice.invoice_date.desc())  # most recent first
+                .order_by(Invoice.invoice_date.desc())
                 .limit(12)
                 .all()
             )
 
-        if request.method == 'POST':
-            paid_invoice_ids = request.form.getlist('paid_invoices')  # list of invoice ids marked as paid
+        return render_template('paymentStatus.html', customers=customers, filter_name=filter_name)
 
-            for cust in customers:
-                for inv in cust.invoices:
-                    inv.paid = str(inv.id) in paid_invoice_ids
-                    db.add(inv)
 
-            db.commit()
-            return redirect(url_for('paymentStatus'))
+@app.route('/reports')
+def reports():
+    with SessionLocal() as db:
+        invoices = db.query(Invoice).all()
+        customers = {c.id: c.name for c in db.query(Customer).all()}
 
-        return render_template('paymentStatus.html', customers=customers)
+        grouped = defaultdict(list)
+        for inv in invoices:
+            if inv.invoice_date:
+                key = inv.invoice_date.strftime('%Y-%m')  # "2025-08"
+                invoice_number = inv.qa_invoice_num if inv.qa_invoice_num else f"Q&A-{inv.customer_id:04d}"
+                grouped[key].append({
+                    "invoice_number": invoice_number,
+                    "customer_name": customers.get(inv.customer_id, "Unknown"),
+                    "invoice_date": inv.invoice_date.strftime('%Y-%m-%d'),
+                    "total": str(inv.amount),
+                    "status": "Paid" if inv.paid else "Unpaid"
+                })
 
+        months = sorted(grouped, reverse=True)
+
+    return render_template("reports.html", monthly_reports=grouped, months=months)
+
+@app.route('/download_csv', methods=['POST'])
+def download_csv():
+    month = request.form.get('month')
+    if not month:
+        return "Missing month", 400
+
+    with SessionLocal() as db:
+        invoices = db.query(Invoice).filter(Invoice.invoice_date.like(f"{month}-%")).all()
+        customers = {c.id: c.name for c in db.query(Customer).all()}
+
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Invoice #", "Customer", "Date", "Total", "Status"])
+
+        for inv in invoices:
+            writer.writerow([
+                inv.qa_invoice_num if inv.qa_invoice_num else f"Q&A-{inv.customer_id:04d}",
+                customers.get(inv.customer_id, "Unknown"),
+                inv.invoice_date.strftime("%Y-%m-%d") if inv.invoice_date else "N/A",
+                str(inv.amount),
+                "Paid" if inv.paid else "Unpaid"
+            ])
+
+
+        response = make_response(output.getvalue())
+        response.headers["Content-Disposition"] = f"attachment; filename={month}_invoices.csv"
+        response.headers["Content-Type"] = "text/csv"
+        return response
 
 if __name__ == '__main__':      
     app.run(host='0.0.0.0', port=os.environ.get('FLASK_PORT', 5000), debug=os.environ.get('FLASK_DEBUG', True))

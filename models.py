@@ -45,7 +45,7 @@ class Invoice(Base):
     invoice_date = Column(Date)
     amount = Column(Numeric(12, 2))
     qa_invoice_num = Column(String(120))
-    paid = Column(Boolean, default=False)
+    paid = Column(Boolean, default=False)   
 
     customer = relationship("Customer", back_populates="invoices")
 

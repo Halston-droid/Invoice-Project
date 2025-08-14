@@ -19,80 +19,127 @@
         <button type="submit">Upload Excel File</button>
     </form>
 
+    <form action="{{ url_for('reports') }}" method="get" style="margin: 10px 0;">
+        <button type="submit">Monthly Invoice Reports</button>
+    </form> 
+
     <!-- Invoice Date button -->
     <label for="globalInvoiceDate"><strong>Select Invoice Date:</strong></label>
     <input type="date" id="globalInvoiceDate" name="globalInvoiceDate" required>
     <br><br>
 
-    <a href="{{ url_for('paymentStatus') }}">View Payment Status</a>
+    <form action="{{ url_for('paymentStatus') }}" method="get" style="display:inline;">
+        <button type="submit">View Payment Status</button>
+    </form>
 
-    <!-- Customers table with individual invoice forms -->
-<form method="POST" action="/update_customers">
-  <table>
-    <thead>
-      <tr>
-        <th>Actions</th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Store Count</th>
-        <th>Rate</th>
-        <th>Payment Term</th>
-        <th>Current PO</th>
-        <th>Total</th>
-        <th>Multiplier</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for cust in customers %}
-      <tr>
-        <td>
-            <!-- NEW: Hidden date + button -->
-            <input type="hidden" name="invoiceDate" class="invoiceDateInput">
-            <button type="submit"
-                    formaction="{{ url_for('invoiceConfirmation') }}"
-                    formmethod="POST"
-                    formtarget="_blank"
-                    name="customer_id"
-                    value="{{ cust.id }}">
-            Add New Invoice
-            </button>
-        </td>
-        <td><a href="{{ url_for('customerInfo', customer_id=cust.id) }}">{{ cust.name }}</a></td>
-        <td><input type="email" name="email_{{ cust.id }}" value="{{ cust.email }}"></td>
-        <td><input type="number" name="store_count_{{ cust.id }}" value="{{ cust.store_count }}"></td>
-        <td><input type="text" name="rate_{{ cust.id }}" value="{{ cust.rate }}"></td>
-        <td><input type="number" name="paymentTerm_{{ cust.id }}" value="{{ cust.paymentTerm }}"></td>
-        <td><input type="text" name="currentPO_{{ cust.id }}" value="{{ cust.currentPO }}"></td>
-        <td><input type="number" step="0.01" name="total_{{ cust.id }}" value="{{ cust.total }}"></td>
-        <td><input type="number" step="0.01" name="multiplier_{{ cust.id }}" value="{{ cust.multiplier }}"></td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <br>
+    <form method="POST" action="/update_customers">
+      <table>
+        <thead>
+          <tr>
+            <th>Actions</th>
+            <th>Invoice Name</th>
+            <th>Email</th>
+            <th>Store Count</th>
+            <th>Rate</th>
+            <th>Payment Term</th>
+            <th>Curr Purchase Order</th>
+            <th>Total</th>
+            <th>Multiplier</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cust in customers %}
+          <tr>
+            <td>
+                <!-- NEW: Hidden date + button -->
+                <input type="hidden" name="invoiceDate" class="invoiceDateInput">
+                <input type="hidden" name="invoice_total" class="invoiceTotalInput">
+                <button type="submit"
+                        formaction="{{ url_for('invoiceConfirmation') }}"
+                        formmethod="POST"
+                        formtarget="_blank"
+                        name="customer_id"
+                        value="{{ cust.id }}">
+                Add New Invoice
+                </button>
+            </td>
+            <td>
+              <a href="{{ url_for('customerInfo', customer_id=cust.id) }}?total={{ cust.total }}">
+                {{ cust.name }}
+              </a>
+            </td>
+            <td><input type="email" name="email_{{ cust.id }}" value="{{ cust.email }}"></td>
+            <td><input type="number" name="store_count_{{ cust.id }}" value="{{ cust.store_count }}"></td>
+            <td><input type="text" name="rate_{{ cust.id }}" value="{{ cust.rate }}"></td>
+            <td><input type="number" name="paymentTerm_{{ cust.id }}" value="{{ cust.paymentTerm }}"></td>
+            <td><input type="text" name="currentPO_{{ cust.id }}" value="{{ cust.currentPO }}"></td>
+            <td><input type="number" step="0.01" name="total_{{ cust.id }}" value="{{ cust.total }}"></td>
+            <td><input type="number" step="0.01" name="multiplier_{{ cust.id }}" value="{{ cust.multiplier }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <br>
+      <button type="submit">Save Changes</button>
+    </form>
 
-  <button type="submit">Save Changes</button>
-</form>
-<script>
-  // Listen for clicks on every invoice button
-  document.querySelectorAll("button[type='submit'][formaction$='invoiceConfirmation']").forEach(button => {
-    button.addEventListener("click", function () {
-        const globalDate = document.getElementById("globalInvoiceDate").value;
-        console.log("Add New Invoice clicked, globalDate is:", globalDate);
+    <script>
+      // Listen for clicks on every invoice button
+      document.querySelectorAll("button[type='submit'][formaction$='invoiceConfirmation']").forEach(button => {
+        button.addEventListener("click", function (event) {
+            const globalDate = document.getElementById("globalInvoiceDate").value;
+            console.log("Add New Invoice clicked, globalDate is:", globalDate);
 
-      // Find the hidden input next to this button
-      const form = this.closest('form');
-      const hiddenInput = form.querySelector(".invoiceDateInput");
-      if (globalDate) {
-        hiddenInput.value = globalDate;
-        console.log("Hidden invoiceDate set to:", hiddenInput.value);
-      } else {
-        alert("Please select an invoice date before generating an invoice.");
-        // Prevent form from submitting without a date
-        event.preventDefault();
+            // Find the hidden input next to this button
+            const form = this.closest('form');
+            const hiddenInput = form.querySelector(".invoiceDateInput");
+            if (globalDate) {
+                hiddenInput.value = globalDate;
+                console.log("Hidden invoiceDate set to:", hiddenInput.value);
+            } else {
+                alert("Please select an invoice date before generating an invoice.");
+                // Prevent form from submitting without a date
+                event.preventDefault();
+            }
+        });
+      });
+
+      // Function to calculate total given rate, store_count, multiplier
+      function calculateTotal(rate, storeCount, multiplier) {
+        rate = parseFloat(rate) || 0;
+        storeCount = parseInt(storeCount) || 0;
+        multiplier = parseFloat(multiplier) || 0;
+
+        // If any is zero, total should ignore it (i.e., multiply only non-zero values)
+        let values = [rate, storeCount, multiplier].filter(v => v !== 0);
+        if (values.length === 0) {
+          return 0;
+        }
+        return values.reduce((acc, val) => acc * val, 1).toFixed(2);
       }
-    });
-  });
-</script>
+
+      // For each row in the table, watch the rate, store_count, and multiplier inputs
+      document.querySelectorAll("button[type='submit'][formaction$='invoiceConfirmation']").forEach(button => {
+          button.addEventListener("click", function (event) {
+              const globalDate = document.getElementById("globalInvoiceDate").value;
+              const form = this.closest('form');
+              const hiddenDateInput = form.querySelector(".invoiceDateInput");
+              const hiddenTotalInput = form.querySelector(".invoiceTotalInput");
+              const totalInput = this.closest("tr").querySelector("input[name^='total_']");
+
+              if (globalDate) {
+                  hiddenDateInput.value = globalDate;
+                  hiddenTotalInput.value = totalInput.value || 0;  // Send total to Flask
+              } else {
+                  alert("Please select an invoice date before generating an invoice.");
+                  event.preventDefault();
+              }
+          });
+      });
+
+    </script>
 
 </body>
 </html>
